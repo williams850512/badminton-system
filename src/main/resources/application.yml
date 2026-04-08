@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: badminton-system
+
+  # ===== Database (MS SQL Server) =====
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=BadmintonDB;encrypt=true;trustServerCertificate=true
+    username: sa
+    password: your_password
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+  # ===== JPA / Hibernate =====
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.SQLServerDialect
+
+  # ===== Thymeleaf =====
+  thymeleaf:
+    cache: false
+
+server:
+  port: 8080
