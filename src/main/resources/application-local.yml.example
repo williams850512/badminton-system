@@ -1,0 +1,11 @@
+# ===========================================================
+# Local Configuration (DO NOT commit this file!)
+# ===========================================================
+# Copy this file and rename to: application-local.yml
+# Then fill in your own database credentials.
+# ===========================================================
+
+spring:
+  datasource:
+    username: sa
+    password: your_real_password_here

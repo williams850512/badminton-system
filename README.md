@@ -14,28 +14,38 @@ Badminton Reservation Management System - Spring Boot Edition
 
 ## Project Structure (Package by Feature)
 
-`
+```
 com.badminton/
-├── BadmintonApplication.java
-├── config/          ... WebConfig, CORS, etc.
-├── common/          ... Interceptor, ExceptionHandler
-├── member/          ... Entity, Repository, Service, Controller
-├── admin/           ... Entity, Repository, Service, Controller
-├── venue/           ... Entity, Repository, Service, Controller
-├── court/           ... Entity, Repository, Service, Controller
-├── booking/         ... Entity, Repository, Service, Controller
-├── timeslot/        ... Entity, Repository, Service
-├── product/         ... Entity, Repository, Service, Controller
-├── order/           ... Entity, Repository, Service, Controller
-├── announcement/    ... Entity, Repository, Service, Controller
-└── pickupgame/      ... Entity, Repository, Service, Controller
-`
++-- BadmintonApplication.java
++-- config/          ... WebConfig, CORS, etc.
++-- common/          ... Interceptor, ExceptionHandler
++-- member/          ... Entity, Repository, Service, Controller
++-- admin/           ... Entity, Repository, Service, Controller
++-- venue/           ... Entity, Repository, Service, Controller
++-- court/           ... Entity, Repository, Service, Controller
++-- booking/         ... Entity, Repository, Service, Controller
++-- timeslot/        ... Entity, Repository, Service
++-- product/         ... Entity, Repository, Service, Controller
++-- order/           ... Entity, Repository, Service, Controller
++-- announcement/    ... Entity, Repository, Service, Controller
++-- pickupgame/      ... Entity, Repository, Service, Controller
+```
 
 ## Getting Started
 
 1. Clone this repository
-2. Update pplication.yml with your SQL Server credentials
-3. Run: mvn spring-boot:run
+2. **Set up database config (important!):**
+   - Copy `application-local.yml.example` to `application-local.yml`
+   - Edit `application-local.yml` with your own SQL Server password
+   - **DO NOT modify `application.yml` for passwords!**
+3. Run with local profile:
+   ```
+   mvn spring-boot:run -Dspring-boot.run.profiles=local
+   ```
+   Or in Eclipse: Run Configurations -> Arguments -> VM arguments:
+   ```
+   -Dspring.profiles.active=local
+   ```
 4. Open: http://localhost:8080
 
 ## Module Assignments

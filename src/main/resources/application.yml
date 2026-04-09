@@ -3,10 +3,12 @@ spring:
     name: badminton-system
 
   # ===== Database (MS SQL Server) =====
+  # Do NOT put real passwords here!
+  # Create your own application-local.yml (see README)
   datasource:
     url: jdbc:sqlserver://localhost:1433;databaseName=BadmintonDB;encrypt=true;trustServerCertificate=true
     username: sa
-    password: your_password
+    password: CHANGE_ME_IN_LOCAL_YML
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   # ===== JPA / Hibernate =====
