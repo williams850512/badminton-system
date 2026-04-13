@@ -17,7 +17,13 @@
         </div>
         <div>
             <label>狀態:</label>
-            <input type="text" th:field="*{status}" />
+            <!-- 配合 OrderStatus Enum，強迫只能選這四個值，防止後端資料綁定失敗 -->
+            <select th:field="*{status}">
+                <option value="UNPAID">未付款</option>
+                <option value="PAID">已付款</option>
+                <option value="COMPLETED">已完成</option>
+                <option value="CANCELLED">已取消</option>
+            </select>
         </div>
         <div>
             <label>付款方式:</label>

@@ -31,8 +31,9 @@ public class Order {
     @Column(name = "total_amount", nullable = false)
     private Integer totalAmount;
 
-    @Column(name = "status", length = 50)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private OrderStatus status = OrderStatus.UNPAID;
 
     @Column(name = "payment_type", length = 50)
     private String paymentType;
@@ -43,7 +44,8 @@ public class Order {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @PrePersist
+    // 在建構(儲存)時自動填入當前時間
+    @PrePersist   // <- 在 JPA save() 之前自動執行
     protected void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
