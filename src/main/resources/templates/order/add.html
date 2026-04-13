@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>新增訂單</title>
+</head>
+<body>
+    <h1>新增訂單</h1>
+    <form th:action="@{/admin/orders/add}" th:object="${order}" method="post">
+        <div>
+            <label>會員ID:</label>
+            <input type="number" th:field="*{memberId}" required />
+        </div>
+        <div>
+            <label>總金額:</label>
+            <input type="number" th:field="*{totalAmount}" required />
+        </div>
+        <div>
+            <label>狀態:</label>
+            <input type="text" th:field="*{status}" />
+        </div>
+        <div>
+            <label>付款方式:</label>
+            <input type="text" th:field="*{paymentType}" />
+        </div>
+        <div>
+            <label>備註:</label>
+            <textarea th:field="*{note}"></textarea>
+        </div>
+        <button type="submit">送出</button>
+        <a th:href="@{/admin/orders}">返回列表</a>
+    </form>
+</body>
+</html>

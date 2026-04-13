@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>訂單列表</title>
+</head>
+<body>
+    <h1>訂單列表</h1>
+    <a th:href="@{/admin/orders/add}">新增訂單</a>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>訂單ID</th>
+                <th>會員ID</th>
+                <th>總金額</th>
+                <th>狀態</th>
+                <th>付款方式</th>
+                <th>時間</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="order : ${orders}">
+                <td th:text="${order.orderId}"></td>
+                <td th:text="${order.memberId}"></td>
+                <td th:text="${order.totalAmount}"></td>
+                <td th:text="${order.status}"></td>
+                <td th:text="${order.paymentType}"></td>
+                <td th:text="${#temporals.format(order.orderDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                <td>
+                    <a th:href="@{/admin/orders/detail/{id}(id=${order.orderId})}">查看明細</a>
+                    <form th:action="@{/admin/orders/delete/{id}(id=${order.orderId})}" method="post" style="display:inline;">
+                        <button type="submit">刪除</button>
+                    </form>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
