@@ -42,4 +42,14 @@ public class Order {
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (orderDate == null) {
+            orderDate = LocalDateTime.now();
+        }
+    }
 }
