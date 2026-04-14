@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,6 +49,12 @@ public class VenueRestController {
 	@PatchMapping("/{id}/status")
 	public Venue updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
 		return venueService.updateStatus(id, VenueStatus.valueOf(body.get("status")));
+	}
+
+	// DELETE /api/venues/3
+	@DeleteMapping("/{id}")
+	public void delete(@PathVariable Integer id) {
+		venueService.deleteById(id);
 	}
 
 }
