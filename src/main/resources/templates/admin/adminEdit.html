@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-TW" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>羽球館 | 編輯管理員資料</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_green.css">
+    
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f4f7f6; margin: 0; }
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 30px; max-width: 800px; margin: 50px auto; }
+        .form-section { margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .section-title { font-size: 16px; font-weight: bold; color: #3498db; margin-bottom: 15px; display: block; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+        .form-control { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; outline: none; transition: 0.2s; box-sizing: border-box; }
+        .form-control:focus { border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+        .form-control:disabled { background-color: #f8f9fa; cursor: not-allowed; border-style: dashed; }
+        .radio-group { display: flex; gap: 20px; padding: 10px 0; }
+        .radio-item { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+        .btn-group { display: flex; gap: 10px; margin-top: 30px; justify-content: flex-end; }
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; transition: 0.2s; text-align: center; }
+        .btn-primary { background-color: #3498db; color: white; min-width: 120px; }
+        .btn-secondary { background-color: #95a5a6; color: white; }
+        .help-text { font-size: 12px; color: #94a3b8; margin-top: 5px; }
+        #message-box { padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; margin-bottom: 20px; display: none; }
+        .success { background: #e6f4ea; color: #1e7e34; border: 1px solid #c3e6cb; }
+        .error { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 id="pageTitle" style="margin-bottom: 25px; color: #2c3e50;">⚙️ 編輯管理員資料</h2>
+    
+    <div id="message-box"></div>
+
+    <form id="adminEditForm">
+        <input type="hidden" name="adminId" id="adminId">
+        
+        <div class="form-section">
+            <span class="section-title">帳號資訊</span>
+            <div class="form-group">
+                <label>登入帳號 Username</label>
+                <input type="text" id="username" class="form-control" disabled>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <span class="section-title">個人基本資料</span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>姓名 Full Name</label>
+                    <input type="text" name="fullName" id="fullName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>性別 Gender</label>
+                    <div class="radio-group">
+                        <label class="radio-item"><input type="radio" name="gender" value="男" id="genderM"> 男</label>
+                        <label class="radio-item"><input type="radio" name="gender" value="女" id="genderF"> 女</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>生日 Birthday</label>
+                    <input type="text" id="birthdayPicker" name="birthday" class="form-control" required readonly>
+                </div>
+                <div class="form-group">
+                    <label>電話 Phone</label>
+                    <input type="tel" id="phoneInput" name="phone" class="form-control" maxlength="12" placeholder="09xx-xxx-xxx">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>電子信箱 Email</label>
+                <input type="email" name="email" id="email" class="form-control">
+            </div>
+        </div>
+
+        <div class="form-section">
+            <span class="section-title">權限與管理資訊</span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>帳號狀態 Status</label>
+                    <select name="status" id="status" class="form-control">
+                        <option value="active">🟢 啟用中 (Active)</option>
+                        <option value="inactive">🔴 停用 (Inactive)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>職位權限 Role</label>
+                    <select name="role" id="role" class="form-control">
+                        <option value="staff">👤 一般職員 (Staff)</option>
+                        <option value="manager">💼 系統主管 (Manager)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>管理備註 Note</label>
+                <textarea name="note" id="note" class="form-control" rows="3" style="resize: vertical;"></textarea>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <a href="/admin/list" class="btn btn-secondary">取消返回</a>
+            <button type="submit" class="btn btn-primary">儲存更新</button>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    const birthdayPicker = flatpickr("#birthdayPicker", { dateFormat: "Y-m-d", maxDate: "today" });
+
+    // 1. 從 URL 取得 ID
+    const urlParams = new URLSearchParams(window.location.search);
+    const adminId = urlParams.get('id');
+
+    window.onload = function() {
+        if (!adminId) {
+            alert("未指定管理員 ID");
+            window.location.href = "/admin/list";
+            return;
+        }
+
+        // 2. 獲取資料 — 修正為正確的 API 路徑
+        fetch(`/api/admin/${adminId}`)
+            .then(res => {
+                if (!res.ok) throw new Error('找不到該管理員');
+                return res.json();
+            })
+            .then(data => {
+                document.getElementById('adminId').value = data.adminId;
+                document.getElementById('username').value = data.username || '';
+                document.getElementById('fullName').value = data.fullName || '';
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('phoneInput').value = data.phone || '';
+                document.getElementById('note').value = data.note || '';
+                document.getElementById('status').value = data.status || 'active';
+                document.getElementById('role').value = data.role || 'staff';
+                if (data.birthday) birthdayPicker.setDate(data.birthday);
+                
+                if (data.gender === '男') document.getElementById('genderM').checked = true;
+                else if (data.gender === '女') document.getElementById('genderF').checked = true;
+            })
+            .catch(err => {
+                console.error(err);
+                alert('載入管理員資料失敗');
+                window.location.href = '/admin/list';
+            });
+    };
+
+    // 3. 手機格式化
+    document.getElementById('phoneInput').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, ''); 
+        let formattedValue = '';
+        if (value.length > 0) {
+            formattedValue = value.substring(0, 4); 
+            if (value.length > 4) formattedValue += '-' + value.substring(4, 7); 
+            if (value.length > 7) formattedValue += '-' + value.substring(7, 11); 
+        }
+        e.target.value = formattedValue;
+    });
+
+    // 4. 提交更新 — 修正為正確的 API 路徑
+    document.getElementById('adminEditForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const msgBox = document.getElementById('message-box');
+        const formData = new FormData(this);
+        const jsonData = Object.fromEntries(formData.entries());
+
+        fetch(`/api/admin/${adminId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: JSON.stringify(jsonData)
+        })
+        .then(res => {
+            if (res.ok) {
+                msgBox.textContent = "✅ 資料更新成功！";
+                msgBox.className = "success";
+                msgBox.style.display = "block";
+                setTimeout(() => window.location.href = "/admin/list", 1500);
+            } else {
+                msgBox.textContent = "❌ 更新失敗，請稍後再試。";
+                msgBox.className = "error";
+                msgBox.style.display = "block";
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

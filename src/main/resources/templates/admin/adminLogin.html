@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-TW" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>羽球館 | 管理員登入</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #2c3e50; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        .login-card { 
+            background: #fff; 
+            padding: 45px; 
+            border-radius: 12px; 
+            width: 100%; 
+            max-width: 420px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
+        }
+
+        .login-header { text-align: center; margin-bottom: 35px; }
+        .login-header h2 { color: #2c3e50; font-size: 26px; font-weight: bold; margin-bottom: 10px; letter-spacing: 1px; }
+        .login-header p { color: #7f8c8d; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; }
+
+        .form-group { margin-bottom: 25px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #34495e; font-size: 14px; }
+        
+        .form-control { 
+            width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px; 
+            font-size: 15px; outline: none; transition: all 0.3s; background-color: #f9f9f9;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus { border-color: #3498db; background-color: #fff; box-shadow: 0 0 8px rgba(52, 152, 219, 0.2); }
+
+        .btn-login { 
+            width: 100%; padding: 14px; background: #2c3e50; color: white; border: none; 
+            border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; 
+            transition: 0.3s; letter-spacing: 1px;
+        }
+
+        .btn-login:hover { background: #34495e; transform: translateY(-1px); box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
+
+        /* 錯誤訊息樣式 */
+        .error-box {
+            background-color: #fdf2f2; color: #e74c3c; border: 1px solid #fadbd8;
+            padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; 
+            margin-bottom: 25px; display: flex; align-items: center; justify-content: center;
+            gap: 8px; animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        .footer-links { margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
+        .back-link { color: #95a5a6; text-decoration: none; font-size: 13px; transition: 0.2s; }
+        .back-link:hover { color: #3498db; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="login-header">
+        <h2>羽球館管理系統</h2>
+        <p>Admin Login</p>
+    </div>
+    
+    <div th:if="${param.error != null and param.error[0] == '1'}" class="error-box">
+        <span>❌</span> 帳號或密碼錯誤，請重新輸入
+    </div>
+    
+    <div th:if="${param.error != null and param.error[0] == 'no_auth'}" class="error-box">
+        <span>🔒</span> 權限不足，請先登入管理員帳號
+    </div>
+
+    <form id="adminLoginForm">
+        <div class="form-group">
+            <label>帳號</label>
+            <input type="text" name="username" id="username" class="form-control" 
+                   placeholder="請輸入帳號" required autocomplete="off">
+        </div>
+        
+        <div class="form-group">
+            <label>密碼</label>
+            <input type="password" name="password" id="password" class="form-control" 
+                   placeholder="請輸入密碼" required>
+        </div>
+        
+        <button type="submit" class="btn-login">登入</button>
+    </form>
+    
+    <div class="footer-links">
+        <a href="/member/login" class="back-link">← 返回前台會員登入</a>
+    </div>
+</div>
+
+<script>
+    document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const loginData = {
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value
+        };
+
+        fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(loginData)
+        })
+        .then(async response => {
+            if (response.ok) {
+                // ✅ 修正：管理員登入後導向「系統管理員中心」而非會員中心
+                window.location.href = '/member/list';
+            } else {
+                window.location.href = '/admin/login?error=1';
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('系統連線異常');
+        });
+    });
+</script>
+
+</body>
+</html>

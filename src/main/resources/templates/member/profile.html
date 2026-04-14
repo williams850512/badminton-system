@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-TW" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>羽球館 | 個人中心</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
+
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f4f7f6; margin: 0; }
+        .app-container { display: flex; min-height: 100vh; }
+        .main-content { flex: 1; padding: 20px; }
+        .content-body { padding: 30px; }
+        
+        /* 個人資料卡片 */
+        .profile-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; max-width: 900px; margin: 0 auto; }
+        .profile-header { background: #3498db; color: white; padding: 30px; text-align: center; }
+        .profile-header h2 { font-size: 24px; margin-bottom: 5px; margin-top: 0; }
+        .profile-header p { font-size: 14px; opacity: 0.9; margin: 0; }
+
+        /* 資料概覽網格 */
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 30px; background-color: #fcfdfe; border-bottom: 1px solid #eee; }
+        .info-item label { display: block; font-size: 11px; color: #95a5a6; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        .info-item .value { font-size: 15px; font-weight: 600; color: #2c3e50; }
+
+        /* 會員等級標籤 */
+        .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge-user { background: #ecf0f1; color: #7f8c8d; }
+        .badge-vip { background: #fff9db; color: #f1c40f; border: 1px solid #f9eba0; }
+
+        /* 表單區域 */
+        .form-section { padding: 40px; }
+        .form-section h3 { font-size: 18px; color: #2c3e50; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; margin-top: 0; }
+        .form-section h3::before { content: ''; display: block; width: 4px; height: 18px; background: #3498db; border-radius: 2px; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; font-size: 14px; }
+        
+        .form-control { 
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; 
+            font-size: 14px; transition: 0.3s; background: #fff; box-sizing: border-box;
+        }
+        .form-control:focus { border-color: #3498db; outline: none; box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
+
+        .radio-group { display: flex; gap: 30px; padding: 10px 0; }
+        .radio-item { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+
+        .btn-submit { 
+            width: 100%; padding: 14px; background: #2c3e50; color: white; border: none; 
+            border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .btn-submit:hover { background: #34495e; transform: translateY(-1px); box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="main-content">
+        <div class="content-body">
+            <div class="profile-card">
+                <div class="profile-header">
+                    <h2 id="welcomeText">歡迎回來</h2>
+                    <p>您可以在此查看與修改您的帳戶資訊</p>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>帳號 Username</label>
+                        <div id="displayUsername" class="value">---</div>
+                    </div>
+                    <div class="info-item">
+                        <label>會員等級 Level</label>
+                        <div id="displayLevel" class="value"></div>
+                    </div>
+                    <div class="info-item">
+                        <label>性別 Gender</label>
+                        <div id="displayGender" class="value">---</div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>修改個人資料</h3>
+                    <form id="profileForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>姓名 Name</label>
+                                <input type="text" name="fullName" id="fullName" class="form-control" required autocomplete="off">
+                            </div>
+
+                            <div class="form-group">
+                                <label>性別 Gender</label>
+                                <div class="radio-group">
+                                    <label class="radio-item">
+                                        <input type="radio" name="gender" value="男" id="genderM"> 男
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="gender" value="女" id="genderF"> 女
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>生日 Birthday</label>
+                                <input type="text" id="birthdayPicker" name="birthday" 
+                                       class="form-control" placeholder="請選取日期" readonly>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>電話 Phone</label>
+                                <input type="text" id="phoneInput" name="phone" class="form-control" maxlength="12" placeholder="09xx-xxx-xxx" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>電子信箱 Email</label>
+                            <input type="email" name="email" id="email" class="form-control" placeholder="example@mail.com" autocomplete="off">
+                        </div>
+
+                        <button type="submit" class="btn-submit">儲存所有變更</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 1. 初始化 Flatpickr
+const birthdayPicker = flatpickr("#birthdayPicker", {
+    locale: "zh_tw",
+    dateFormat: "Y-m-d",
+    maxDate: "today", 
+    disableMobile: "true"
+});
+
+// 2. 頁面載入時獲取當前登入者資料
+document.addEventListener('DOMContentLoaded', function() {
+    // 改為呼叫 MembersController 中的 @GetMapping("/profile")
+    fetch('/api/members/profile') 
+        .then(res => {
+            if (!res.ok) throw new Error('未登入或找不到使用者');
+            return res.json();
+        })
+        .then(user => {
+            // 填寫上方概覽
+            document.getElementById('welcomeText').textContent = `歡迎回來，${user.fullName}`;
+            document.getElementById('displayUsername').textContent = user.username;
+            document.getElementById('displayGender').textContent = user.gender || '未設定';
+            
+            const levelDiv = document.getElementById('displayLevel');
+            if(user.membershipLevel === 'VIP') {
+                levelDiv.innerHTML = '<span class="role-badge badge-vip">💎 VIP 會員</span>';
+            } else {
+                levelDiv.innerHTML = '<span class="role-badge badge-user">👤 一般會員</span>';
+            }
+
+            // 填寫表單
+            document.getElementById('fullName').value = user.fullName || '';
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('phoneInput').value = user.phone || '';
+            
+            if (user.birthday) {
+                birthdayPicker.setDate(user.birthday);
+            }
+            
+            if (user.gender === '男') document.getElementById('genderM').checked = true;
+            else if (user.gender === '女') document.getElementById('genderF').checked = true;
+        })
+        .catch(err => {
+            console.error(err);
+            // 可視需求導回登入頁面
+        });
+});
+
+// 3. 電話格式化
+const phoneInput = document.getElementById('phoneInput');
+phoneInput.addEventListener('input', function (e) {
+    let value = e.target.value.replace(/\D/g, '');
+    let formattedValue = '';
+    if (value.length > 0) formattedValue += value.substring(0, 4);
+    if (value.length > 4) formattedValue += '-' + value.substring(4, 7);
+    if (value.length > 7) formattedValue += '-' + value.substring(7, 11);
+    e.target.value = formattedValue;
+});
+
+// 4. 提交表單更新
+document.getElementById('profileForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const jsonData = Object.fromEntries(formData.entries());
+
+    // 改為呼叫 MembersController 中的 @PutMapping("/profile")
+    fetch('/api/members/profile', {
+        method: 'PUT', // 對應 Controller 的 @PutMapping
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(jsonData)
+    })
+    .then(res => {
+        if (res.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: '更新成功！',
+                text: '您的個人資料已同步至最新狀態。',
+                confirmButtonColor: '#3498db',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload(); 
+            });
+        } else {
+            Swal.fire('錯誤', '更新失敗，請檢查輸入內容', 'error');
+        }
+    })
+    .catch(err => {
+        Swal.fire('系統錯誤', '無法連接至伺服器', 'error');
+    });
+});
+</script>
+
+</body>
+</html>
