@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>新增訂單明細</title>
+</head>
+<body>
+    <h1>新增訂單明細</h1>
+    <p>訂單編號: <span th:text="${order.orderId}"></span></p>
+    
+    <form th:action="@{/admin/orders/{orderId}/items/add(orderId=${order.orderId})}" method="post">
+        <div>
+            <label>商品ID:</label>
+            <input type="number" name="productId" required />
+        </div>
+        <div>
+            <label>數量:</label>
+            <input type="number" name="quantity" required />
+        </div>
+        <div>
+            <label>單價:</label>
+            <input type="number" name="unitPrice" required />
+        </div>
+        <p><em>※ 小計 (subtotal) 會由後端自動計算 = 數量 × 單價</em></p>
+        <button type="submit">送出</button>
+        <a th:href="@{/admin/orders/detail/{id}(id=${order.orderId})}">取消返回</a>
+    </form>
+</body>
+</html>

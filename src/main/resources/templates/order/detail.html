@@ -11,9 +11,13 @@
         <p><strong>會員ID:</strong> <span th:text="${order.memberId}"></span></p>
         <p><strong>總金額:</strong> <span th:text="${order.totalAmount}"></span></p>
         <p><strong>狀態:</strong> <span th:text="${order.status}"></span></p>
+        <p><strong>付款方式:</strong> <span th:text="${order.paymentType}"></span></p>
+        <p><strong>備註:</strong> <span th:text="${order.note}"></span></p>
         <p><strong>時間:</strong> <span th:text="${#temporals.format(order.orderDate, 'yyyy-MM-dd HH:mm:ss')}"></span></p>
         
         <h2>明細項目</h2>
+        <!-- 新增明細按鈕 -->
+        <a th:href="@{/admin/orders/{orderId}/items/add(orderId=${order.orderId})}">新增明細</a>
         <table border="1">
             <thead>
                 <tr>
@@ -21,17 +25,26 @@
                     <th>商品ID</th>
                     <th>數量</th>
                     <th>單價</th>
+                    <th>小計</th>
+                    <th>操作</th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:each="item : ${items}">
-                    <td th:text="${item.orderItemId}"></td>
+                    <td th:text="${item.itemId}"></td>
                     <td th:text="${item.productId}"></td>
                     <td th:text="${item.quantity}"></td>
                     <td th:text="${item.unitPrice}"></td>
+                    <td th:text="${item.subtotal}"></td>
+                    <td>
+                        <a th:href="@{/admin/orders/{orderId}/items/edit/{itemId}(orderId=${order.orderId}, itemId=${item.itemId})}">修改</a>
+                        <form th:action="@{/admin/orders/{orderId}/items/delete/{itemId}(orderId=${order.orderId}, itemId=${item.itemId})}" method="post" style="display:inline;">
+                            <button type="submit">刪除</button>
+                        </form>
+                    </td>
                 </tr>
                 <tr th:if="${items.empty}">
-                    <td colspan="4">目前沒有明細</td>
+                    <td colspan="6">目前沒有明細</td>
                 </tr>
             </tbody>
         </table>

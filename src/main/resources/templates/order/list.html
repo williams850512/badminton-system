@@ -28,6 +28,7 @@
                 <td th:text="${order.paymentType}"></td>
                 <td th:text="${#temporals.format(order.orderDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
                 <td>
+                    <a th:href="@{/admin/orders/edit/{id}(id=${order.orderId})}">修改</a>
                     <a th:href="@{/admin/orders/detail/{id}(id=${order.orderId})}">查看明細</a>
                     <form th:action="@{/admin/orders/delete/{id}(id=${order.orderId})}" method="post" style="display:inline;">
                         <button type="submit">刪除</button>
