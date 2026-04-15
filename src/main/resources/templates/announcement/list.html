@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+    ============================================================
+    公告管理 CRUD 頁面
+    ============================================================
+    【結構說明】與 venue/list.html 相同格式：
+    1. head 使用共用 layout
+    2. page-header 區的標題和按鈕
+    3. 表格欄位（thead + tbody 渲染）
+    4. Modal 表單欄位
+    5. JavaScript 裡的 API 路徑和欄位名稱
+    ============================================================
+-->
+<head th:replace="~{layout/backend :: head('公告管理')}"></head>
+<body>
+
+    <!-- ===== Header 導覽列 ===== -->
+    <nav th:replace="~{layout/backend :: header}"></nav>
+
+    <div class="d-flex">
+        <!-- ===== Sidebar 側邊欄 ===== -->
+        <aside th:replace="~{layout/backend :: sidebar}"></aside>
+
+        <!-- ===== 主內容區（只改這裡面！）===== -->
+        <main class="main-content">
+
+            <!-- 頁面標題 + 新增按鈕 -->
+            <div class="page-header">
+                <h2><i class="bi bi-megaphone"></i> 公告管理</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="bi bi-plus-lg"></i> 新增公告
+                </button>
+            </div>
+
+            <!-- 公告資料表格 -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0" id="announcementTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>標題</th>
+                                <th>分類</th>
+                                <th>置頂</th>
+                                <th>瀏覽數</th>
+                                <th>狀態</th>
+                                <th style="width: 200px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr class="loading-row">
+                                <td colspan="7">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                    載入中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <footer th:replace="~{layout/backend :: footer}"></footer>
+
+    <!-- ===== 新增/編輯 Modal ===== -->
+    <div class="modal fade" id="announcementModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">新增公告</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="announcementForm">
+                        <!-- 隱藏欄位：記錄正在編輯的 ID（新增時為空） -->
+                        <input type="hidden" id="editId">
+
+                        <div class="mb-3">
+                            <label for="title" class="form-label">標題 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title"
+                                   placeholder="例：場館整修公告" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="content" class="form-label">內容 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="content" rows="5"
+                                      placeholder="請輸入公告內容..." required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="category" class="form-label">分類</label>
+                                <select class="form-select" id="category">
+                                    <option value="">-- 請選擇 --</option>
+                                    <option value="緊急">緊急</option>
+                                    <option value="活動">活動</option>
+                                    <option value="一般">一般</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="status" class="form-label">狀態</label>
+                                <select class="form-select" id="status">
+                                    <option value="DRAFT">草稿</option>
+                                    <option value="PUBLISHED">已發布</option>
+                                    <option value="ARCHIVED">已封存</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">置頂</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="isPinned">
+                                    <label class="form-check-label" for="isPinned">設為置頂公告</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAnnouncement()">
+                        <i class="bi bi-check-lg"></i> 儲存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 共用 Scripts ===== -->
+    <div th:replace="~{layout/backend :: scripts}"></div>
+
+    <!-- ===== 本頁 JavaScript（AJAX + DOM 操作）===== -->
+    <script>
+        // ============================================================
+        // API 路徑（修改這裡就能套用到其他模組）
+        // ============================================================
+        const API_URL = '/api/announcements';
+
+        // Bootstrap Modal 實例
+        let announcementModal;
+
+        // ============================================================
+        // 頁面載入
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
+            loadData();
+        });
+
+        // ============================================================
+        // 【READ】載入所有公告
+        // ============================================================
+        async function loadData() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = `
+                <tr class="loading-row">
+                    <td colspan="7">
+                        <div class="spinner-border spinner-border-sm text-primary"></div> 載入中...
+                    </td>
+                </tr>`;
+
+            try {
+                const response = await fetch(API_URL);     // GET /api/announcements
+                const announcements = await response.json();
+
+                if (announcements.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="7" class="text-center text-muted py-4">
+                            目前沒有公告資料，請點擊「新增公告」按鈕
+                        </td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                announcements.forEach(item => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${item.announcementId}</td>
+                            <td><strong>${item.title}</strong></td>
+                            <td>${item.category || '<span class="text-muted">-</span>'}</td>
+                            <td>${item.isPinned ? '<i class="bi bi-pin-fill text-danger"></i> 是' : '否'}</td>
+                            <td>${item.viewCount || 0}</td>
+                            <td>${getStatusBadge(item.status)}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" title="編輯"
+                                            onclick='openEditModal(${JSON.stringify(item)})'>
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="刪除"
+                                            onclick="deleteAnnouncement(${item.announcementId}, '${item.title}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary dropdown-toggle" 
+                                                data-bs-toggle="dropdown" title="變更狀態">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#" 
+                                                   onclick="changeStatus(${item.announcementId}, 'DRAFT')">
+                                                <i class="bi bi-file-earmark text-secondary"></i> 草稿
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" 
+                                                   onclick="changeStatus(${item.announcementId}, 'PUBLISHED')">
+                                                <i class="bi bi-check-circle text-success"></i> 已發布
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" 
+                                                   onclick="changeStatus(${item.announcementId}, 'ARCHIVED')">
+                                                <i class="bi bi-archive text-warning"></i> 已封存
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr><td colspan="7" class="text-center text-danger py-4">
+                        <i class="bi bi-exclamation-triangle"></i> 載入失敗：${error.message}
+                        <br><button class="btn btn-sm btn-outline-primary mt-2" onclick="loadData()">重試</button>
+                    </td></tr>`;
+            }
+        }
+
+        // ============================================================
+        // 狀態 Badge 對應
+        // ============================================================
+        function getStatusBadge(status) {
+            const map = {
+                'DRAFT':     '<span class="badge bg-secondary">草稿</span>',
+                'PUBLISHED': '<span class="badge bg-success">已發布</span>',
+                'ARCHIVED':  '<span class="badge bg-warning text-dark">已封存</span>'
+            };
+            return map[status] || `<span class="badge bg-secondary">${status}</span>`;
+        }
+
+        // ============================================================
+        // 【CREATE】打開新增 Modal
+        // ============================================================
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = '新增公告';
+            document.getElementById('announcementForm').reset();   // 清空表單
+            document.getElementById('editId').value = '';           // 清空 ID
+            announcementModal.show();
+        }
+
+        // ============================================================
+        // 【UPDATE】打開編輯 Modal（帶入舊資料）
+        // ============================================================
+        function openEditModal(item) {
+            document.getElementById('modalTitle').textContent = '編輯公告';
+            document.getElementById('editId').value = item.announcementId;
+            document.getElementById('title').value = item.title;
+            document.getElementById('content').value = item.content || '';
+            document.getElementById('category').value = item.category || '';
+            document.getElementById('status').value = item.status || 'DRAFT';
+            document.getElementById('isPinned').checked = item.isPinned || false;
+            announcementModal.show();
+        }
+
+        // ============================================================
+        // 【CREATE / UPDATE】儲存（根據有無 ID 判斷新增或更新）
+        // ============================================================
+        async function saveAnnouncement() {
+            const id = document.getElementById('editId').value;
+            const data = {
+                title:    document.getElementById('title').value.trim(),
+                content:  document.getElementById('content').value.trim(),
+                category: document.getElementById('category').value,
+                status:   document.getElementById('status').value,
+                isPinned: document.getElementById('isPinned').checked
+            };
+
+            // 簡易前端驗證
+            if (!data.title) {
+                alert('請輸入公告標題！');
+                return;
+            }
+            if (!data.content) {
+                alert('請輸入公告內容！');
+                return;
+            }
+
+            try {
+                let response;
+                if (id) {
+                    // 有 ID → PUT 更新
+                    response = await fetch(`${API_URL}/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    // 沒 ID → POST 新增
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                }
+
+                if (response.ok) {
+                    announcementModal.hide();              // 關閉 Modal
+                    loadData();                            // 重新載入表格
+                    alert(id ? '更新成功！' : '新增成功！');
+                } else {
+                    const err = await response.text();
+                    alert('操作失敗：' + err);
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+
+        // ============================================================
+        // 【DELETE】刪除公告
+        // ============================================================
+        async function deleteAnnouncement(id, title) {
+            if (!confirm(`確定要刪除「${title}」嗎？`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadData();                     // 重新載入表格
+                    alert('刪除成功！');
+                } else {
+                    alert('刪除失敗');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+
+        // ============================================================
+        // 【PATCH】變更狀態
+        // ============================================================
+        async function changeStatus(id, newStatus) {
+            try {
+                const response = await fetch(`${API_URL}/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    loadData();                     // 重新載入表格
+                } else {
+                    alert('狀態更新失敗');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+    </script>
+
+</body>
+</html>
