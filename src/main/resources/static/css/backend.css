@@ -1,0 +1,116 @@
+/* ============================================================
+   羽球預約管理系統 — 後台共用樣式
+   ============================================================ */
+
+/* ---------- 全局 ---------- */
+body {
+    padding-top: 56px;       /* 為 fixed-top navbar 留空間 */
+    background-color: #f4f6f9;
+    font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+}
+
+/* ---------- Sidebar 側邊欄 ---------- */
+.sidebar {
+    position: fixed;
+    top: 56px;               /* navbar 高度 */
+    bottom: 0;
+    left: 0;
+    width: 220px;
+    overflow-y: auto;
+    border-right: 1px solid #dee2e6;
+    z-index: 100;
+}
+
+.sidebar .nav-link {
+    color: #333;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #e9ecef;
+    color: #0d6efd;
+}
+
+.sidebar .nav-link.active {
+    background-color: #0d6efd;
+    color: #fff !important;
+    border-radius: 4px;
+    margin: 0 8px;
+}
+
+.sidebar .nav-link i {
+    margin-right: 8px;
+    width: 18px;
+    text-align: center;
+}
+
+.sidebar-heading {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+/* ---------- Main Content 主內容區 ---------- */
+.main-content {
+    margin-left: 220px;      /* sidebar 寬度 */
+    padding: 24px 32px;
+    min-height: calc(100vh - 56px);
+    width: calc(100% - 220px);
+}
+
+/* ---------- Page Header 頁面標題區 ---------- */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.page-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* ---------- Table 表格調整 ---------- */
+.table th {
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.table td {
+    vertical-align: middle;
+    font-size: 0.9rem;
+}
+
+/* ---------- Status Badges 狀態標籤 ---------- */
+.badge-active      { background-color: #198754 !important; }
+.badge-inactive    { background-color: #6c757d !important; }
+.badge-maintenance { background-color: #ffc107 !important; color: #333 !important; }
+.badge-confirmed   { background-color: #0d6efd !important; }
+.badge-cancelled   { background-color: #dc3545 !important; }
+.badge-completed   { background-color: #198754 !important; }
+.badge-no-show     { background-color: #6c757d !important; }
+
+/* ---------- Footer 頁尾 ---------- */
+.footer {
+    margin-left: 220px;
+    border-top: 1px solid #dee2e6;
+    background-color: #fff;
+}
+
+/* ---------- Modal 微調 ---------- */
+.modal-header {
+    background-color: #f8f9fa;
+}
+
+/* ---------- Loading Spinner ---------- */
+.loading-row td {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
