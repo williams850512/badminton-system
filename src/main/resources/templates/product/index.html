@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>商品管理首頁</title>
+</head>
+<body>
+    <div class="app-container">
+        <div class="main-content">
+            <div class="content-body">
+                <div class="card">
+                    <h2 style="margin-bottom: 15px;">商品管理</h2>
+                    <p style="margin-bottom: 20px;">歡迎進入商品管理後台，您可以查看、新增、修改與刪除商品資料。</p>
+
+                    <!-- 改用 th:href 對應 Controller 路由 -->
+                    <a class="btn btn-primary" th:href="@{/product/list}">查看商品列表</a>
+                    <a class="btn btn-warning" th:href="@{/product/add}">新增商品</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
