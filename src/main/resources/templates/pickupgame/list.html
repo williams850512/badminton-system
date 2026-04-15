@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/backend :: head('臨打揪團管理')}"></head>
+<body>
+
+    <!-- ===== Header 導覽列 ===== -->
+    <nav th:replace="~{layout/backend :: header}"></nav>
+
+    <div class="d-flex">
+        <!-- ===== Sidebar 側邊欄 ===== -->
+        <aside th:replace="~{layout/backend :: sidebar}"></aside>
+
+        <!-- ===== 主內容區 ===== -->
+        <main class="main-content">
+
+            <!-- 頁面標題 + 新增按鈕 -->
+            <div class="page-header">
+                <h2><i class="bi bi-people"></i> 臨打揪團管理</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="bi bi-plus-lg"></i> 新增揪團
+                </button>
+            </div>
+
+            <!-- 揪團資料表格 -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0" id="gameTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>日期</th>
+                                <th>時間</th>
+                                <th>程度</th>
+                                <th>狀態</th>
+                                <th style="width: 200px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr class="loading-row">
+                                <td colspan="6">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                    載入中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <footer th:replace="~{layout/backend :: footer}"></footer>
+
+    <!-- ===== 新增/編輯 Modal ===== -->
+    <div class="modal fade" id="gameModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">新增揪團</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="gameForm">
+                        <input type="hidden" id="editId">
+
+                        <div class="mb-3">
+                            <label for="gameDate" class="form-label">日期 <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="gameDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="startTime" class="form-label">開始時間 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="startTime" required>
+                                <option value="">請選擇開始時間</option>
+                                <option value="10:00">10:00</option>
+                                <option value="11:00">11:00</option>
+                                <option value="12:00">12:00</option>
+                                <option value="13:00">13:00</option>
+                                <option value="14:00">14:00</option>
+                                <option value="15:00">15:00</option>
+                                <option value="16:00">16:00</option>
+                                <option value="17:00">17:00</option>
+                                <option value="18:00">18:00</option>
+                                <option value="19:00">19:00</option>
+                                <option value="20:00">20:00</option>
+                                <option value="21:00">21:00</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="endTime" class="form-label">結束時間 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="endTime" required>
+                                <option value="">請先選擇開始時間</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="skillLevel" class="form-label">程度要求</label>
+                            <select class="form-select" id="skillLevel">
+                                <option value="all">不限 (新手/老手皆可)</option>
+                                <option value="beginner">初級 (新手友善/歡樂流汗)</option>
+                                <option value="intermediate">中級 (懂規則/具基本跑位)</option>
+                                <option value="advanced">高級 (高強度/多拍來回)</option>
+                            </select>
+                        </div>
+                        <!-- 注意：因為 host 和 court 是物件關聯，這裡簡單實作先傳送 ID（前端手動輸入或寫死） -->
+                        <div class="mb-3">
+                            <label for="hostId" class="form-label">主揪 ID (測試用)</label>
+                            <input type="number" class="form-control" id="hostId" value="1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="courtId" class="form-label">場地 ID (測試用)</label>
+                            <input type="number" class="form-control" id="courtId" value="1">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveGame()">
+                        <i class="bi bi-check-lg"></i> 儲存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 共用 Scripts ===== -->
+    <div th:replace="~{layout/backend :: scripts}"></div>
+
+    <!-- ===== 本頁 JavaScript ===== -->
+    <script>
+        const API_URL = '/api/pickup-games';
+        let gameModal;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            gameModal = new bootstrap.Modal(document.getElementById('gameModal'));
+            
+            // 日期防呆：不能選今天以前的日期
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('gameDate').setAttribute('min', today);
+            
+            // 當開始時間變更時，動態更新結束時間選單
+            document.getElementById('startTime').addEventListener('change', function() {
+                updateEndTimeOptions(this.value);
+            });
+            
+            loadData();
+        });
+        
+        // 動態產生結束時間選項（只顯示「開始時間之後」的時段）
+        function updateEndTimeOptions(startValue) {
+            const endSelect = document.getElementById('endTime');
+            endSelect.innerHTML = '';
+            
+            if (!startValue) {
+                endSelect.innerHTML = '<option value="">請先選擇開始時間</option>';
+                return;
+            }
+            
+            const startHour = parseInt(startValue.split(':')[0]);
+            
+            // 結束時間從「開始 +1 小時」到 22:00
+            endSelect.innerHTML = '<option value="">請選擇結束時間</option>';
+            for (let h = startHour + 1; h <= 22; h++) {
+                const val = h.toString().padStart(2, '0') + ':00';
+                endSelect.innerHTML += `<option value="${val}">${val}</option>`;
+            }
+        }
+
+        // 載入表格資料
+        async function loadData() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '<tr class="loading-row"><td colspan="6"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</td></tr>';
+
+            try {
+                const response = await fetch(API_URL);
+                const games = await response.json();
+
+                if (games.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">目前沒有資料</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                games.forEach(game => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${game.gameId}</td>
+                            <td><strong>${game.gameDate}</strong></td>
+                            <td>${game.startTime} - ${game.endTime}</td>
+                            <td>${getSkillLevelBadge(game.skillLevel)}</td>
+                            <td>${getStatusBadge(game.status)}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" title="編輯" onclick='openEditModal(${JSON.stringify(game)})'>
+                                        <i class="bi bi-pencil"></i> 編輯
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="刪除"
+                                            onclick="deleteGame(${game.gameId})">
+                                        <i class="bi bi-trash"></i> 刪除
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">載入失敗：${error.message}</td></tr>`;
+            }
+        }
+
+        function getStatusBadge(status) {
+            const map = {
+                'open':      '<span class="badge bg-success">開放中</span>',
+                'cancelled': '<span class="badge bg-secondary">已取消</span>',
+                'full':      '<span class="badge bg-warning text-dark">已額滿</span>'
+            };
+            return map[status] || `<span class="badge bg-info">${status}</span>`;
+        }
+        
+        function getSkillLevelBadge(level) {
+            const map = {
+                'all':          '<span class="badge bg-secondary">不限</span>',
+                'beginner':     '<span class="badge bg-success">初級</span>',
+                'intermediate': '<span class="badge bg-primary">中級</span>',
+                'advanced':     '<span class="badge bg-danger">高級</span>'
+            };
+            return map[level] || `<span class="badge bg-secondary">${level}</span>`;
+        }
+
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = '新增揪團';
+            document.getElementById('gameForm').reset();
+            document.getElementById('editId').value = '';
+            // 重置結束時間選單
+            document.getElementById('endTime').innerHTML = '<option value="">請先選擇開始時間</option>';
+            gameModal.show();
+        }
+
+        // 打開編輯 Modal (帶入舊資料)
+        function openEditModal(game) {
+            document.getElementById('modalTitle').textContent = '編輯揪團';
+            
+            // 填入表單
+            document.getElementById('editId').value = game.gameId;
+            document.getElementById('gameDate').value = game.gameDate;
+            
+            // 先把開始時間的值截取成整點格式 (例如 "20:46:00" → "20:00")
+            const startHour = game.startTime ? game.startTime.substring(0, 2) + ':00' : '';
+            document.getElementById('startTime').value = startHour;
+            
+            // 觸發結束時間選單更新，再設定結束時間的值
+            updateEndTimeOptions(startHour);
+            const endHour = game.endTime ? game.endTime.substring(0, 2) + ':00' : '';
+            document.getElementById('endTime').value = endHour;
+            
+            document.getElementById('skillLevel').value = game.skillLevel;
+            
+            // 處理關聯物件的 ID (如果有值的話)
+            if (game.host) {
+                document.getElementById('hostId').value = game.host.memberId;
+            }
+            if (game.court) {
+                document.getElementById('courtId').value = game.court.courtId;
+            }
+            
+            gameModal.show();
+        }
+
+        // 新增揪團
+        async function saveGame() {
+            const id = document.getElementById('editId').value;
+            // 根據 Entity 組合 JSON
+            const data = {
+                gameDate: document.getElementById('gameDate').value,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                skillLevel: document.getElementById('skillLevel').value,
+                // 物件關聯寫法：包成一個帶有 ID 的物件傳給後端
+                host: { memberId: document.getElementById('hostId').value },
+                court: { courtId: document.getElementById('courtId').value }
+            };
+
+            if (!data.gameDate || !data.startTime || !data.endTime) {
+                alert('請填寫完整時間！');
+                return;
+            }
+
+            try {
+                let response;
+                if (id) {
+                    response = await fetch(`${API_URL}/${id}`, {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                } else {
+                    response = await fetch(API_URL, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                }
+
+                // 註：這會因為你資料庫目前還沒有 Members/Courts 表的資料而報 500 Constraint 錯誤是正常的
+                // 因為 FK 關聯檢查找不到 ID=1 的會員或場地。等資料齊全就能新增成功。
+
+                if (response.ok) {
+                    gameModal.hide();
+                    loadData();
+                    alert(id ? '更新成功！' : '新增請求已送出！(注意：需有實體會員/場地關聯才能成功存入DB)');
+                } else {
+                    const err = await response.text();
+                    console.error("錯誤:", err);
+                    alert('操作失敗！請確認你的資料庫目前是否有 id=1 的會員與場地可供關聯。詳細訊息請看 Console。');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+
+        // 刪除揪團
+        async function deleteGame(id) {
+            if (!confirm(`確定要刪除 ID: ${id} 嗎？`)) return;
+            try {
+                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadData();
+                    alert('刪除成功！');
+                } else {
+                    alert('刪除失敗');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

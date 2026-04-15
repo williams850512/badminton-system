@@ -6,15 +6,15 @@ spring:
   # Do NOT put real passwords here!
   # Create your own application-local.yml (see README)
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=BadmintonDB;encrypt=true;trustServerCertificate=true
+    url: jdbc:sqlserver://172.22.33.74:1433;databaseName=BadmintonDB;encrypt=false;trustServerCertificate=true
     username: sa
-    password: CHANGE_ME_IN_LOCAL_YML
+    password: 1120
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   # ===== JPA / Hibernate =====
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     open-in-view: false
     properties:
