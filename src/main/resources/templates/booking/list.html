@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+    ============================================================
+    預約管理 CRUD 頁面
+    ============================================================
+    依照 venue/list.html 格式製作
+    欄位：ID、球場、會員ID、預約日期、時段、金額、狀態、操作
+    ============================================================
+-->
+<head th:replace="~{layout/backend :: head('預約管理')}"></head>
+<body>
+
+    <!-- ===== Header 導覽列 ===== -->
+    <nav th:replace="~{layout/backend :: header}"></nav>
+
+    <div class="d-flex">
+        <!-- ===== Sidebar 側邊欄 ===== -->
+        <aside th:replace="~{layout/backend :: sidebar}"></aside>
+
+        <!-- ===== 主內容區 ===== -->
+        <main class="main-content">
+
+            <!-- 頁面標題 + 新增按鈕 -->
+            <div class="page-header">
+                <h2><i class="bi bi-calendar-check"></i> 預約管理</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="bi bi-plus-lg"></i> 新增預約
+                </button>
+            </div>
+
+            <!-- 預約資料表格 -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0" id="bookingTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>場館 / 球場</th>
+                                <th>會員ID</th>
+                                <th>預約日期</th>
+                                <th>時段</th>
+                                <th>金額</th>
+                                <th>狀態</th>
+                                <th style="width: 200px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr class="loading-row">
+                                <td colspan="8">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                    載入中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <footer th:replace="~{layout/backend :: footer}"></footer>
+
+    <!-- ===== 新增 Modal ===== -->
+    <div class="modal fade" id="bookingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">新增預約</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bookingForm">
+                        <input type="hidden" id="editId">
+
+                        <div class="row">
+                            <!-- 場館（連動用） -->
+                            <div class="col-md-6 mb-3">
+                                <label for="venueId" class="form-label">場館 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="venueId" required>
+                                    <option value="">-- 請選擇場館 --</option>
+                                </select>
+                            </div>
+                            <!-- 球場（根據場館連動） -->
+                            <div class="col-md-6 mb-3">
+                                <label for="courtId" class="form-label">球場 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="courtId" required>
+                                    <option value="">-- 請先選擇場館 --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- 會員 ID -->
+                            <div class="col-md-4 mb-3">
+                                <label for="memberId" class="form-label">會員 ID</label>
+                                <input type="number" class="form-control" id="memberId"
+                                       placeholder="例：1">
+                            </div>
+                            <!-- 預約日期 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="bookingDate" class="form-label">預約日期 <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="bookingDate" required>
+                            </div>
+                            <!-- 金額 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="totalAmount" class="form-label">金額</label>
+                                <input type="number" class="form-control" id="totalAmount"
+                                       placeholder="例：600" min="0">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- 開始時間 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="startTime" class="form-label">開始時間 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="startTime" required>
+                                    <option value="">-- 請選擇 --</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                </select>
+                            </div>
+                            <!-- 結束時間 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="endTime" class="form-label">結束時間 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="endTime" required>
+                                    <option value="">-- 請先選擇開始時間 --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="note" class="form-label">備註</label>
+                            <textarea class="form-control" id="note" rows="2"
+                                      placeholder="選填，例：需要借球拍"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveBooking()">
+                        <i class="bi bi-check-lg"></i> 儲存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 共用 Scripts ===== -->
+    <div th:replace="~{layout/backend :: scripts}"></div>
+
+    <!-- ===== 本頁 JavaScript（AJAX + DOM 操作）===== -->
+    <script>
+        // ============================================================
+        // API 路徑
+        // ============================================================
+        const API_URL       = '/api/bookings';
+        const VENUE_API_URL = '/api/venues';
+        const COURT_API_URL = '/api/courts';
+
+        // 快取所有球場（用於場館連動篩選）
+        let allCourts = [];
+
+        // Bootstrap Modal 實例
+        let bookingModal;
+
+        // ============================================================
+        // 頁面載入
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            bookingModal = new bootstrap.Modal(document.getElementById('bookingModal'));
+
+            // 場館下拉連動：選擇場館後，自動篩選球場
+            document.getElementById('venueId').addEventListener('change', filterCourts);
+
+            // 開始時間連動：選擇開始時間後，自動篩選結束時間
+            document.getElementById('startTime').addEventListener('change', filterEndTimes);
+
+            // 預約日期最小值：今天
+            document.getElementById('bookingDate').min = new Date().toISOString().split('T')[0];
+
+            loadData();
+        });
+
+        // ============================================================
+        // 【READ】載入所有預約
+        // ============================================================
+        async function loadData() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = `
+                <tr class="loading-row">
+                    <td colspan="8">
+                        <div class="spinner-border spinner-border-sm text-primary"></div> 載入中...
+                    </td>
+                </tr>`;
+
+            try {
+                const response = await fetch(API_URL);     // GET /api/bookings
+                const bookings = await response.json();
+
+                if (bookings.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="8" class="text-center text-muted py-4">
+                            目前沒有預約資料，請點擊「新增預約」按鈕
+                        </td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                bookings.forEach(booking => {
+                    // 組合場館/球場名稱
+                    let courtInfo = '<span class="text-muted">-</span>';
+                    if (booking.court) {
+                        const venueName = booking.court.venue ? booking.court.venue.venueName : '?';
+                        courtInfo = `${venueName} / <strong>${booking.court.courtName}</strong>`;
+                    }
+
+                    // 時段顯示
+                    const timeSlot = (booking.startTime && booking.endTime)
+                        ? `${booking.startTime.substring(0,5)} ~ ${booking.endTime.substring(0,5)}`
+                        : '<span class="text-muted">-</span>';
+
+                    // 金額顯示
+                    const amount = booking.totalAmount != null
+                        ? `$${Number(booking.totalAmount).toLocaleString()}`
+                        : '<span class="text-muted">-</span>';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${booking.bookingId}</td>
+                            <td>${courtInfo}</td>
+                            <td>${booking.memberId || '<span class="text-muted">-</span>'}</td>
+                            <td>${booking.bookingDate || '<span class="text-muted">-</span>'}</td>
+                            <td>${timeSlot}</td>
+                            <td>${amount}</td>
+                            <td>${getStatusBadge(booking.status)}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary dropdown-toggle"
+                                                data-bs-toggle="dropdown" title="變更狀態">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#"
+                                                   onclick="changeStatus(${booking.bookingId}, 'CONFIRMED')">
+                                                <i class="bi bi-check-circle text-success"></i> 已確認
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#"
+                                                   onclick="changeStatus(${booking.bookingId}, 'COMPLETED')">
+                                                <i class="bi bi-check2-all text-primary"></i> 已完成
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#"
+                                                   onclick="changeStatus(${booking.bookingId}, 'CANCELLED')">
+                                                <i class="bi bi-x-circle text-danger"></i> 已取消
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#"
+                                                   onclick="changeStatus(${booking.bookingId}, 'NO_SHOW')">
+                                                <i class="bi bi-person-x text-warning"></i> 未到場
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr><td colspan="8" class="text-center text-danger py-4">
+                        <i class="bi bi-exclamation-triangle"></i> 載入失敗：${error.message}
+                        <br><button class="btn btn-sm btn-outline-primary mt-2" onclick="loadData()">重試</button>
+                    </td></tr>`;
+            }
+        }
+
+        // ============================================================
+        // 狀態 Badge 對應
+        // ============================================================
+        function getStatusBadge(status) {
+            const map = {
+                'CONFIRMED': '<span class="badge badge-active">已確認</span>',
+                'COMPLETED': '<span class="badge bg-primary">已完成</span>',
+                'CANCELLED': '<span class="badge badge-inactive">已取消</span>',
+                'NO_SHOW':   '<span class="badge badge-maintenance">未到場</span>'
+            };
+            return map[status] || `<span class="badge bg-secondary">${status}</span>`;
+        }
+
+        // ============================================================
+        // 載入場館下拉選單 + 球場快取
+        // ============================================================
+        async function loadVenueAndCourtOptions() {
+            const venueSelect = document.getElementById('venueId');
+            venueSelect.innerHTML = '<option value="">-- 請選擇場館 --</option>';
+
+            try {
+                // 載入場館
+                const venueRes = await fetch(VENUE_API_URL);
+                const venues = await venueRes.json();
+                venues.forEach(venue => {
+                    if (venue.status === 'ACTIVE') {
+                        venueSelect.innerHTML += `<option value="${venue.venueId}">${venue.venueName}</option>`;
+                    }
+                });
+
+                // 載入所有球場（快取起來，選場館後篩選）
+                const courtRes = await fetch(COURT_API_URL);
+                allCourts = await courtRes.json();
+            } catch (error) {
+                console.error('載入場館/球場清單失敗', error);
+            }
+
+            // 重置球場下拉
+            document.getElementById('courtId').innerHTML = '<option value="">-- 請先選擇場館 --</option>';
+        }
+
+        // ============================================================
+        // 場館連動：根據所選場館篩選球場
+        // ============================================================
+        function filterCourts() {
+            const venueId = parseInt(document.getElementById('venueId').value);
+            const courtSelect = document.getElementById('courtId');
+            courtSelect.innerHTML = '<option value="">-- 請選擇球場 --</option>';
+
+            if (!venueId) return;
+
+            const filtered = allCourts.filter(c =>
+                c.venue && c.venue.venueId === venueId && c.status === 'ACTIVE'
+            );
+
+            filtered.forEach(court => {
+                courtSelect.innerHTML += `<option value="${court.courtId}">${court.courtName}</option>`;
+            });
+
+            if (filtered.length === 0) {
+                courtSelect.innerHTML = '<option value="">-- 該場館尚無可用球場 --</option>';
+            }
+        }
+
+        // ============================================================
+        // 開始時間連動：根據所選開始時間，篩選結束時間選項
+        // ============================================================
+        function filterEndTimes() {
+            const startVal = parseInt(document.getElementById('startTime').value);
+            const endSelect = document.getElementById('endTime');
+            endSelect.innerHTML = '<option value="">-- 請選擇 --</option>';
+
+            if (isNaN(startVal)) return;
+
+            // 結束時間從「開始時間 + 1 小時」到 22:00
+            const startHour = parseInt(startVal);
+            for (let h = startHour + 1; h <= 22; h++) {
+                const val = h.toString().padStart(2, '0') + ':00';
+                endSelect.innerHTML += `<option value="${val}">${val}</option>`;
+            }
+        }
+
+        // ============================================================
+        // 【CREATE】打開新增 Modal
+        // ============================================================
+        async function openCreateModal() {
+            document.getElementById('modalTitle').textContent = '新增預約';
+            document.getElementById('bookingForm').reset();
+            document.getElementById('editId').value = '';
+            await loadVenueAndCourtOptions();
+            bookingModal.show();
+        }
+
+        // ============================================================
+        // 【CREATE】儲存新預約
+        // ============================================================
+        async function saveBooking() {
+            const courtId    = document.getElementById('courtId').value;
+            const bookingDate = document.getElementById('bookingDate').value;
+            const startTime  = document.getElementById('startTime').value;
+            const endTime    = document.getElementById('endTime').value;
+
+            // 簡易前端驗證
+            if (!document.getElementById('venueId').value) { alert('請選擇場館！'); return; }
+            if (!courtId)    { alert('請選擇球場！'); return; }
+            if (!bookingDate){ alert('請選擇預約日期！'); return; }
+            if (!startTime)  { alert('請選擇開始時間！'); return; }
+            if (!endTime)    { alert('請選擇結束時間！'); return; }
+            if (startTime >= endTime) { alert('結束時間必須晚於開始時間！'); return; }
+
+            const data = {
+                court:       { courtId: parseInt(courtId) },
+                memberId:    document.getElementById('memberId').value ? parseInt(document.getElementById('memberId').value) : null,
+                bookingDate: bookingDate,
+                startTime:   startTime,
+                endTime:     endTime,
+                totalAmount: document.getElementById('totalAmount').value ? parseFloat(document.getElementById('totalAmount').value) : null,
+                note:        document.getElementById('note').value.trim() || null
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    bookingModal.hide();
+                    loadData();
+                    alert('新增預約成功！');
+                } else {
+                    const err = await response.text();
+                    alert('操作失敗：' + err);
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+
+        // ============================================================
+        // 【PATCH】變更狀態
+        // ============================================================
+        async function changeStatus(id, newStatus) {
+            try {
+                const response = await fetch(`${API_URL}/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    loadData();
+                } else {
+                    alert('狀態更新失敗');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+    </script>
+
+</body>
+</html>
