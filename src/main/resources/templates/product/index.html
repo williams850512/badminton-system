@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/backend :: head('商品管理首頁')}"></head>
+<body>
+
+    <!-- ===== Header 導覽列 ===== -->
+    <nav th:replace="~{layout/backend :: header}"></nav>
+
+    <div class="d-flex">
+        <!-- ===== Sidebar 側邊欄 ===== -->
+        <aside th:replace="~{layout/backend :: sidebar}"></aside>
+
+        <!-- ===== 主內容區 ===== -->
+        <main class="main-content">
+            <div class="page-header">
+                <h2><i class="bi bi-box-seam"></i> 商品管理首頁</h2>
+            </div>
+            
+            <div class="content-body">
+                <div class="card p-4 shadow-sm border-0">
+                    <h4 style="margin-bottom: 15px;">歡迎進入商品管理後台</h4>
+                    <p class="text-muted" style="margin-bottom: 20px;">您可以查看、新增、修改與刪除商品資料。</p>
+
+                    <div>
+                        <a class="btn btn-primary" th:href="@{/product/list}">查看商品列表</a>
+                        <a class="btn btn-outline-success" th:href="@{/product/add}">新增商品</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <footer th:replace="~{layout/backend :: footer}"></footer>
+
+    <!-- ===== 共用 Scripts ===== -->
+    <div th:replace="~{layout/backend :: scripts}"></div>
+</body>
+</html>

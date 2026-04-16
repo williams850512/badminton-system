@@ -28,6 +28,11 @@ public class CourtService {
 		return courtRepo.save(court);
 	}
 	
+	// ===== 刪除 =====
+	public void deleteById(Integer id) {
+		courtRepo.deleteById(id);
+	}
+	
 	// ===== 狀態更新 =====
 	public Court updateStatus(Integer id, CourtStatus newStatus) {
 		// 1. 先從資料庫撈出這筆 Court
