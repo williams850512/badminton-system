@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/backend :: head('商品列表')}"></head>
+<body>
+
+    <!-- ===== Header 導覽列 ===== -->
+    <nav th:replace="~{layout/backend :: header}"></nav>
+
+    <div class="d-flex">
+        <!-- ===== Sidebar 側邊欄 ===== -->
+        <aside th:replace="~{layout/backend :: sidebar}"></aside>
+
+        <!-- ===== 主內容區 ===== -->
+        <main class="main-content">
+            <div class="page-header d-flex justify-content-between align-items-center">
+                <h2><i class="bi bi-box-seam"></i> 商品列表</h2>
+                <a class="btn btn-primary" th:href="@{/product/add}">
+                    <i class="bi bi-plus-lg"></i> 新增商品
+                </a>
+            </div>
+
+            <div class="card shadow-sm border-0 p-4">
+                
+                <!-- 查詢表單 -->
+                <form th:action="@{/product/search}" method="get" class="d-flex align-items-center gap-2 mb-4">
+                    <input type="text" name="keyword" th:value="${keyword}" placeholder="請輸入商品名稱、分類或品牌" class="form-control" style="max-width: 300px;">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> 查詢</button>
+                    <a th:href="@{/product/list}" class="btn btn-secondary">顯示全部</a>
+                </form>
+
+                <!-- 提示訊息 -->
+                <div th:if="${success}" th:text="${success}" class="alert alert-success mt-2"></div>
+                <div th:if="${error}" th:text="${error}" class="alert alert-danger mt-2"></div>
+
+                <!-- 商品表格 -->
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0" id="productTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>商品圖片</th>
+                                <th>商品名稱</th>
+                                <th>分類</th>
+                                <th>品牌</th>
+                                <th>價格</th>
+                                <th>庫存</th>
+                                <th>狀態</th>
+                                <th style="width: 150px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="product : ${products}">
+                                <td th:text="${product.productId}"></td>
+                                <td>
+                                    <img th:src="@{'/' + ${product.imageUrl}}" width="80" class="img-thumbnail"
+                                         onerror="this.onerror=null; this.src='/images/products/default.png';">
+                                </td>
+                                <td><strong th:text="${product.productName}"></strong></td>
+                                <td th:text="${product.category}"></td>
+                                <td th:text="${product.brand}"></td>
+                                <td th:text="${product.price}"></td>
+                                <td th:text="${product.stockQty}"></td>
+                                <td>
+                                    <!-- 使用 badge 樣式 (定義在 backend.css) -->
+                                    <span th:if="${product.status == 'active'}" class="badge badge-active px-2 py-1 rounded">上架中</span>
+                                    <span th:if="${product.status == 'inactive'}" class="badge badge-inactive px-2 py-1 rounded">已下架</span>
+                                    <span th:if="${product.status != 'active' and product.status != 'inactive'}" th:text="${product.status}" class="badge bg-secondary"></span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <a class="btn btn-sm btn-outline-primary" title="編輯" th:href="@{/product/edit(productId=${product.productId})}">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form th:action="@{/product/delete}" method="post" class="m-0" onsubmit="return confirm('確定要刪除這筆商品嗎？');">
+                                            <input type="hidden" name="productId" th:value="${product.productId}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="刪除"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(products)}">
+                                <td colspan="9" class="text-center text-muted py-4">目前沒有商品資料</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <footer th:replace="~{layout/backend :: footer}"></footer>
+
+    <!-- ===== 共用 Scripts ===== -->
+    <div th:replace="~{layout/backend :: scripts}"></div>
+</body>
+</html>
