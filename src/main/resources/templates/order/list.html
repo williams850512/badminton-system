@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+    ============================================================
+    訂單管理 CRUD 頁面（RESTful AJAX 版）
+    ============================================================
+    【架構說明】依照 venue/list.html 的格式建立：
+    1. 頁面由 OrderController (@Controller) 回傳此 HTML
+    2. 資料透過 AJAX 向 OrderRestController (/api/orders) 取得 JSON
+    3. JavaScript 動態渲染表格 + Modal 表單處理 CRUD
+    ============================================================
+-->
+<head th:replace="~{layout/backend :: head('訂單管理')}"></head>
+<body>
+
+    <!-- ===== Header 導覽列 ===== -->
+    <nav th:replace="~{layout/backend :: header}"></nav>
+
+    <div class="d-flex">
+        <!-- ===== Sidebar 側邊欄 ===== -->
+        <aside th:replace="~{layout/backend :: sidebar}"></aside>
+
+        <!-- ===== 主內容區（只改這裡面！）===== -->
+        <main class="main-content">
+
+            <!-- 頁面標題 + 新增按鈕 -->
+            <div class="page-header">
+                <h2><i class="bi bi-receipt"></i> 訂單管理</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="bi bi-plus-lg"></i> 新增訂單
+                </button>
+            </div>
+
+            <!-- 訂單資料表格 -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0" id="orderTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>會員ID</th>
+                                <th>總金額</th>
+                                <th>狀態</th>
+                                <th>付款方式</th>
+                                <th>訂單時間</th>
+                                <th style="width: 220px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr class="loading-row">
+                                <td colspan="7">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                    載入中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <footer th:replace="~{layout/backend :: footer}"></footer>
+
+    <!-- ===== 新增/編輯 Modal ===== -->
+    <div class="modal fade" id="orderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">新增訂單</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="orderForm">
+                        <!-- 隱藏欄位：記錄正在編輯的 ID（新增時為空） -->
+                        <input type="hidden" id="editId">
+
+                        <div class="mb-3">
+                            <label for="memberId" class="form-label">會員ID <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="memberId"
+                                   placeholder="例：1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="totalAmount" class="form-label">總金額 <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="totalAmount"
+                                   placeholder="例：1500" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymentType" class="form-label">付款方式</label>
+                            <select class="form-select" id="paymentType">
+                                <option value="">請選擇</option>
+                                <option value="CASH">現金</option>
+                                <option value="CREDIT_CARD">信用卡</option>
+                                <option value="TRANSFER">轉帳</option>
+                                <option value="LINE_PAY">Line Pay</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="note" class="form-label">備註</label>
+                            <textarea class="form-control" id="note" rows="2"
+                                      placeholder="選填備註"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveOrder()">
+                        <i class="bi bi-check-lg"></i> 儲存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 共用 Scripts ===== -->
+    <div th:replace="~{layout/backend :: scripts}"></div>
+
+    <!-- ===== 本頁 JavaScript（AJAX + DOM 操作）===== -->
+    <script>
+        // ============================================================
+        // API 路徑（修改這裡就能套用到其他模組）
+        // ============================================================
+        const API_URL = '/api/orders';
+
+        // Bootstrap Modal 實例
+        let orderModal;
+
+        // ============================================================
+        // 頁面載入
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+            loadData();
+        });
+
+        // ============================================================
+        // 【READ】載入所有訂單
+        // ============================================================
+        async function loadData() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = `
+                <tr class="loading-row">
+                    <td colspan="7">
+                        <div class="spinner-border spinner-border-sm text-primary"></div> 載入中...
+                    </td>
+                </tr>`;
+
+            try {
+                const response = await fetch(API_URL);     // GET /api/orders
+                const orders = await response.json();
+
+                if (orders.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="7" class="text-center text-muted py-4">
+                            目前沒有訂單資料，請點擊「新增訂單」按鈕
+                        </td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                orders.forEach(order => {
+                    const orderDate = order.orderDate
+                        ? new Date(order.orderDate).toLocaleString('zh-TW')
+                        : '-';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${order.orderId}</td>
+                            <td>${order.memberId}</td>
+                            <td><strong>$${(order.totalAmount || 0).toLocaleString()}</strong></td>
+                            <td>${getStatusBadge(order.status)}</td>
+                            <td>${order.paymentType || '<span class="text-muted">-</span>'}</td>
+                            <td>${orderDate}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" title="編輯"
+                                            onclick='openEditModal(${JSON.stringify(order)})'>
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="刪除"
+                                            onclick="deleteOrder(${order.orderId})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary dropdown-toggle" 
+                                                data-bs-toggle="dropdown" title="變更狀態">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#" 
+                                                   onclick="changeStatus(${order.orderId}, 'UNPAID')">
+                                                <i class="bi bi-clock text-warning"></i> 未付款
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" 
+                                                   onclick="changeStatus(${order.orderId}, 'PAID')">
+                                                <i class="bi bi-check-circle text-success"></i> 已付款
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" 
+                                                   onclick="changeStatus(${order.orderId}, 'SHIPPED')">
+                                                <i class="bi bi-truck text-info"></i> 已出貨
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" 
+                                                   onclick="changeStatus(${order.orderId}, 'COMPLETED')">
+                                                <i class="bi bi-bag-check text-primary"></i> 已完成
+                                            </a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" href="#" 
+                                                   onclick="changeStatus(${order.orderId}, 'CANCELLED')">
+                                                <i class="bi bi-x-circle text-danger"></i> 已取消
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr><td colspan="7" class="text-center text-danger py-4">
+                        <i class="bi bi-exclamation-triangle"></i> 載入失敗：${error.message}
+                        <br><button class="btn btn-sm btn-outline-primary mt-2" onclick="loadData()">重試</button>
+                    </td></tr>`;
+            }
+        }
+
+        // ============================================================
+        // 狀態 Badge 對應
+        // ============================================================
+        function getStatusBadge(status) {
+            const map = {
+                'UNPAID':    '<span class="badge bg-warning text-dark">未付款</span>',
+                'PAID':      '<span class="badge bg-success">已付款</span>',
+                'SHIPPED':   '<span class="badge bg-info text-dark">已出貨</span>',
+                'COMPLETED': '<span class="badge bg-primary">已完成</span>',
+                'CANCELLED': '<span class="badge bg-danger">已取消</span>'
+            };
+            return map[status] || `<span class="badge bg-secondary">${status}</span>`;
+        }
+
+        // ============================================================
+        // 【CREATE】打開新增 Modal
+        // ============================================================
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = '新增訂單';
+            document.getElementById('orderForm').reset();   // 清空表單
+            document.getElementById('editId').value = '';    // 清空 ID
+            // 新增時，會員ID 和 總金額 可編輯
+            document.getElementById('memberId').disabled = false;
+            document.getElementById('totalAmount').disabled = false;
+            orderModal.show();
+        }
+
+        // ============================================================
+        // 【UPDATE】打開編輯 Modal（帶入舊資料）
+        // ============================================================
+        function openEditModal(order) {
+            document.getElementById('modalTitle').textContent = '編輯訂單';
+            document.getElementById('editId').value = order.orderId;
+            document.getElementById('memberId').value = order.memberId;
+            document.getElementById('memberId').disabled = true;  // 編輯時不可改會員
+            document.getElementById('totalAmount').value = order.totalAmount;
+            document.getElementById('totalAmount').disabled = true; // 總金額由明細自動計算
+            document.getElementById('paymentType').value = order.paymentType || '';
+            document.getElementById('note').value = order.note || '';
+            orderModal.show();
+        }
+
+        // ============================================================
+        // 【CREATE / UPDATE】儲存（根據有無 ID 判斷新增或更新）
+        // ============================================================
+        async function saveOrder() {
+            const id = document.getElementById('editId').value;
+
+            // 簡易前端驗證
+            if (!id && !document.getElementById('memberId').value) {
+                alert('請輸入會員ID！');
+                return;
+            }
+
+            try {
+                let response;
+                if (id) {
+                    // 有 ID → PUT 更新（只送 status, paymentType, note）
+                    const data = {
+                        status:      'UNPAID',  // 維持原狀態，狀態透過下拉選單改
+                        paymentType: document.getElementById('paymentType').value.trim(),
+                        note:        document.getElementById('note').value.trim()
+                    };
+                    response = await fetch(`${API_URL}/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    // 沒 ID → POST 新增
+                    const data = {
+                        memberId:    parseInt(document.getElementById('memberId').value),
+                        totalAmount: parseInt(document.getElementById('totalAmount').value) || 0,
+                        paymentType: document.getElementById('paymentType').value.trim(),
+                        note:        document.getElementById('note').value.trim()
+                    };
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                }
+
+                if (response.ok) {
+                    orderModal.hide();              // 關閉 Modal
+                    loadData();                     // 重新載入表格
+                    alert(id ? '更新成功！' : '新增成功！');
+                } else {
+                    const err = await response.text();
+                    alert('操作失敗：' + err);
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+
+        // ============================================================
+        // 【DELETE】刪除訂單
+        // ============================================================
+        async function deleteOrder(id) {
+            if (!confirm(`確定要刪除訂單 #${id} 嗎？（底下的明細也會一併刪除）`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadData();                     // 重新載入表格
+                    alert('刪除成功！');
+                } else {
+                    alert('刪除失敗');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+
+        // ============================================================
+        // 【PATCH】變更狀態
+        // ============================================================
+        async function changeStatus(id, newStatus) {
+            try {
+                const response = await fetch(`${API_URL}/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    loadData();                     // 重新載入表格
+                } else {
+                    alert('狀態更新失敗');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+    </script>
+
+</body>
+</html>
