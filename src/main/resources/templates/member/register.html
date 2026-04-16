@@ -75,7 +75,7 @@
 
 <div class="reg-card">
     <div class="reg-header">
-        <h2>🏸 會員註冊</h2>
+        <h2>會員註冊</h2>
         <p>Create Your Account</p>
     </div>
     
@@ -176,7 +176,7 @@
         const formData = new FormData(this);
         const jsonData = Object.fromEntries(formData.entries());
 
-        fetch('/api/members/register', {
+        fetch('/api/member/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=UTF-8' },
             body: JSON.stringify(jsonData)

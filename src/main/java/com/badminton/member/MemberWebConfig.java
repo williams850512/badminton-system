@@ -12,22 +12,22 @@ public class MemberWebConfig implements WebMvcConfigurer {
     @Autowired
     private MemberAuthInterceptor memberAuthInterceptor;
 
-    // ✅ 1. 註冊攔截器 (完全還原：路徑權限控管)
+    // 1. 註冊攔截器
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(memberAuthInterceptor)
-                .addPathPatterns("/api/admin/**", "/api/members/**") // 攔截所有後端 API
+                .addPathPatterns("/api/admin/**", "/api/member/**") // 攔截所有後端 API
                 .excludePathPatterns(
                     "/api/admin/login",
                     "/api/admin/logout",
-                    "/api/members/login", 
-                    "/api/members/register",
-                    "/api/members/logout",
+                    "/api/member/login", 
+                    "/api/member/register",
+                    "/api/member/logout",
                     "/css/**", "/js/**", "/images/**", "/lib/**" // 放行靜態資源
                 );
     }
 
-    // ✅ 2. 跨域配置 (還原功能：確保前端 AJAX 呼叫不會被 CORS 擋掉)
+    // 2. 跨域配置
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**") // 針對所有 API 路徑

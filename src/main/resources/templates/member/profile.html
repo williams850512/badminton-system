@@ -22,7 +22,7 @@
         .profile-header p { font-size: 14px; opacity: 0.9; margin: 0; }
 
         /* 資料概覽網格 */
-        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 30px; background-color: #fcfdfe; border-bottom: 1px solid #eee; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 30px; background-color: #fcfdfe; border-bottom: 1px solid #eee; }
         .info-item label { display: block; font-size: 11px; color: #95a5a6; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
         .info-item .value { font-size: 15px; font-weight: 600; color: #2c3e50; }
 
@@ -76,10 +76,6 @@
                         <label>會員等級 Level</label>
                         <div id="displayLevel" class="value"></div>
                     </div>
-                    <div class="info-item">
-                        <label>性別 Gender</label>
-                        <div id="displayGender" class="value">---</div>
-                    </div>
                 </div>
 
                 <div class="form-section">
@@ -88,17 +84,18 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>姓名 Name</label>
-                                <input type="text" name="fullName" id="fullName" class="form-control" required autocomplete="off">
+                                <input type="text" name="fullName" id="fullName" class="form-control" required autocomplete="off"
+                                       disabled style="background-color: #f0f0f0;">
                             </div>
 
                             <div class="form-group">
                                 <label>性別 Gender</label>
                                 <div class="radio-group">
                                     <label class="radio-item">
-                                        <input type="radio" name="gender" value="男" id="genderM"> 男
+                                        <input type="radio" name="gender" value="男" id="genderM" disabled> 男
                                     </label>
                                     <label class="radio-item">
-                                        <input type="radio" name="gender" value="女" id="genderF"> 女
+                                        <input type="radio" name="gender" value="女" id="genderF" disabled> 女
                                     </label>
                                 </div>
                             </div>
@@ -120,7 +117,7 @@
                             <input type="email" name="email" id="email" class="form-control" placeholder="example@mail.com" autocomplete="off">
                         </div>
 
-                        <button type="submit" class="btn-submit">儲存所有變更</button>
+                        <button type="submit" class="btn-submit">儲存變更</button>
                     </form>
                 </div>
             </div>
@@ -139,8 +136,8 @@ const birthdayPicker = flatpickr("#birthdayPicker", {
 
 // 2. 頁面載入時獲取當前登入者資料
 document.addEventListener('DOMContentLoaded', function() {
-    // 改為呼叫 MembersController 中的 @GetMapping("/profile")
-    fetch('/api/members/profile') 
+    // 改為呼叫 MemberRestController 中的 @GetMapping("/profile")
+    fetch('/api/member/profile') 
         .then(res => {
             if (!res.ok) throw new Error('未登入或找不到使用者');
             return res.json();
@@ -149,7 +146,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // 填寫上方概覽
             document.getElementById('welcomeText').textContent = `歡迎回來，${user.fullName}`;
             document.getElementById('displayUsername').textContent = user.username;
-            document.getElementById('displayGender').textContent = user.gender || '未設定';
             
             const levelDiv = document.getElementById('displayLevel');
             if(user.membershipLevel === 'VIP') {
@@ -172,7 +168,6 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(err => {
             console.error(err);
-            // 可視需求導回登入頁面
         });
 });
 
@@ -194,9 +189,12 @@ document.getElementById('profileForm').addEventListener('submit', function(e) {
     const formData = new FormData(this);
     const jsonData = Object.fromEntries(formData.entries());
 
-    // 改為呼叫 MembersController 中的 @PutMapping("/profile")
-    fetch('/api/members/profile', {
-        method: 'PUT', // 對應 Controller 的 @PutMapping
+    // disabled 欄位不會被 FormData 收集，手動補上
+    jsonData.fullName = document.getElementById('fullName').value;
+    jsonData.gender = document.getElementById('genderM').checked ? '男' : '女';
+
+    fetch('/api/member/profile', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(jsonData)
     })

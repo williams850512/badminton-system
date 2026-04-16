@@ -7,124 +7,128 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class MemberService {
-    
-    @Autowired
-    private MemberRepository memberRepo;
 
-    /**
-     * 1. 會員登入 (保留原本 COLLATE 邏輯，並更新最後登入時間)
-     */
-    @Transactional
-    public Optional<MemberBean> login(String username, String password) {
-        if (username == null || password == null) return Optional.empty();
-        Optional<MemberBean> member = memberRepo.findByLogin(username, password);
-        member.ifPresent(m -> memberRepo.updateLastLoginTime(m.getMemberId()));
-        return member;
-    }
+	@Autowired
+	private MemberRepository memberRepo;
 
-    /**
-     * 2. 會員註冊 / 新增會員 (保留 🛡️ 帳號重複檢查安全邏輯)
-     */
-    @Transactional
-    public MemberBean register(MemberBean m) {
-        if (m == null || m.getUsername() == null) return null;
+	// 1. 會員登入
+	@Transactional
+	public Optional<MemberBean> login(String username, String password) {
+		if (username == null || password == null)
+			return Optional.empty();
+		Optional<MemberBean> member = memberRepo.findByLogin(username, password);
+		member.ifPresent(m -> memberRepo.updateLastLoginTime(m.getMemberId()));
+		return member;
+	}
 
-        if (isUsernameExists(m.getUsername())) {
-            throw new RuntimeException("註冊失敗：帳號 [" + m.getUsername() + "] 已被佔用。");
-        }
-        
-        // 設定初始預設值 (與 SQL DEFAULT 保持一致)
-        if (m.getStatus() == null) m.setStatus("Active");
-        if (m.getMembershipLevel() == null) m.setMembershipLevel("Normal");
+	// 2. 會員註冊
+	@Transactional
+	public MemberBean register(MemberBean m) {
+		if (m == null || m.getUsername() == null)
+			return null;
 
-        return memberRepo.save(m);
-    }
+		if (isUsernameExists(m.getUsername())) {
+			throw new RuntimeException("註冊失敗：帳號 [" + m.getUsername() + "] 已被佔用。");
+		}
 
-    /**
-     * 檢查會員帳號是否存在 (對應原本 isUsernameExists)
-     */
-    public boolean isUsernameExists(String username) {
-        if (username == null || username.trim().isEmpty()) return false;
-        return memberRepo.existsByUsername(username.trim());
-    }
+		// 設定初始預設值 (與 SQL DEFAULT 保持一致)
+		if (m.getStatus() == null)
+			m.setStatus("Active");
+		if (m.getMembershipLevel() == null)
+			m.setMembershipLevel("Normal");
 
-    /**
-     * 3. 根據 ID 取得單一會員 (對應原本 getMemberById)
-     */
-    public Optional<MemberBean> getMemberById(int id) {
-        return memberRepo.findById(id);
-    }
+		// 手動寫入時間戳，確保不會觸發 created_at 不能為 NULL 的例外狀況
+		java.sql.Timestamp now = new java.sql.Timestamp(System.currentTimeMillis());
+		m.setCreatedAt(now);
+		m.setUpdatedAt(now);
 
-    /**
-     * 4. 取得所有會員清單 (對應原本 getAllMembers)
-     */
-    public List<MemberBean> getAllMembers() {
-        return memberRepo.findAll();
-    }
+		return memberRepo.save(m);
+	}
 
-    /**
-     * 5. 搜尋會員 (對應原本 searchMembers，呼叫 Repository 的 9 欄位搜尋)
-     */
-    public List<MemberBean> searchMembers(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return memberRepo.findAll();
-        }
-        return memberRepo.searchMembers(keyword.trim());
-    }
+	// 檢查會員帳號是否存在
+	public boolean isUsernameExists(String username) {
+		if (username == null || username.trim().isEmpty())
+			return false;
+		return memberRepo.existsByUsername(username.trim());
+	}
 
-    /**
-     * 6. 會員修改個人資料 (只更新允許的欄位，防止覆蓋密碼等敏感資料)
-     */
-    @Transactional
-    public MemberBean updateMember(MemberBean m) {
-        if (m == null) return null;
-        return memberRepo.findById(m.getMemberId()).map(existing -> {
-            existing.setFullName(m.getFullName());
-            existing.setPhone(m.getPhone());
-            existing.setEmail(m.getEmail());
-            existing.setGender(m.getGender());
-            existing.setBirthday(m.getBirthday());
-            existing.setProfilePicture(m.getProfilePicture());
-            // 不更新 username, password, status, membershipLevel 等敏感欄位
-            return memberRepo.save(existing);
-        }).orElse(null);
-    }
+	// 3. 根據 ID 取得單一會員
+	public Optional<MemberBean> getMemberById(int id) {
+		return memberRepo.findById(id);
+	}
 
-    /**
-     * 7. 管理員修改會員資料 (可修改 status, membershipLevel 等敏感欄位)
-     */
-    @Transactional
-    public MemberBean updateMemberByAdmin(MemberBean m) {
-        if (m == null) return null;
-        return memberRepo.findById(m.getMemberId()).map(existing -> {
-            existing.setFullName(m.getFullName());
-            existing.setPhone(m.getPhone());
-            existing.setEmail(m.getEmail());
-            existing.setGender(m.getGender());
-            existing.setBirthday(m.getBirthday());
-            existing.setProfilePicture(m.getProfilePicture());
-            existing.setStatus(m.getStatus());
-            existing.setMembershipLevel(m.getMembershipLevel());
-            existing.setNote(m.getNote());
-            return memberRepo.save(existing);
-        }).orElse(null);
-    }
+	// 4. 取得所有會員清單
+	public List<MemberBean> getAllMembers() {
+		return memberRepo.findAll();
+	}
 
-    /**
-     * 8. 更新會員備註 (保留 updateNote 快速更新功能)
-     */
-    @Transactional
-    public boolean updateNote(int id, String note) {
-        int result = memberRepo.updateNote(id, note);
-        return result > 0;
-    }
+	// 5. 搜尋會員 (對應原本 searchMembers，呼叫 Repository 的 9 欄位搜尋)
+	public List<MemberBean> searchMembers(String keyword) {
+		if (keyword == null || keyword.trim().isEmpty()) {
+			return memberRepo.findAll();
+		}
+		return memberRepo.searchMembers(keyword.trim());
+	}
 
-    /**
-     * 8. 刪除會員 (對應原本 deleteMember)
-     */
-    @Transactional
-    public void deleteMember(int id) {
-        memberRepo.deleteById(id);
-    }
+	// 6. 會員修改個人資料 (只更新允許的欄位，防止覆蓋密碼等敏感資料)
+	@Transactional
+	public MemberBean updateMember(MemberBean m) {
+		if (m == null)
+			return null;
+		return memberRepo.findById(m.getMemberId()).map(existing -> {
+			existing.setFullName(m.getFullName());
+			existing.setPhone(m.getPhone());
+			existing.setEmail(m.getEmail());
+			existing.setGender(m.getGender());
+			existing.setBirthday(m.getBirthday());
+			existing.setProfilePicture(m.getProfilePicture());
+			// 不更新 username, password, status, membershipLevel 等敏感欄位
+			return memberRepo.save(existing);
+		}).orElse(null);
+	}
+
+	// 7. 管理員修改會員資料 (可修改 status, membershipLevel 等敏感欄位)
+	@Transactional
+	public MemberBean updateMemberByAdmin(MemberBean m) {
+		if (m == null)
+			return null;
+		return memberRepo.findById(m.getMemberId()).map(existing -> {
+
+			// 允許主管修改姓名，但如果是職員編輯此欄位會被 disabled 並傳回 null，這裡加上防呆
+			if (m.getFullName() != null) {
+				existing.setFullName(m.getFullName());
+			}
+
+			existing.setPhone(m.getPhone());
+			existing.setEmail(m.getEmail());
+			existing.setBirthday(m.getBirthday());
+			existing.setProfilePicture(m.getProfilePicture());
+
+			// 加入防呆檢查：因為如果是由一般職員編輯，前端會鎖定這兩個欄位(傳入 null)
+			if (m.getStatus() != null) {
+				existing.setStatus(m.getStatus());
+			}
+			if (m.getMembershipLevel() != null) {
+				existing.setMembershipLevel(m.getMembershipLevel());
+			}
+
+			existing.setNote(m.getNote());
+			return memberRepo.save(existing);
+		}).orElse(null);
+	}
+
+	// 8. 更新會員備註 (保留 updateNote 快速更新功能)
+	@Transactional
+	public boolean updateNote(int id, String note) {
+		int result = memberRepo.updateNote(id, note);
+		return result > 0;
+	}
+
+	// 9. 刪除會員 (對應原本 deleteMember)
+	@Transactional
+	public void deleteMember(int id) {
+		memberRepo.deleteById(id);
+	}
 }
