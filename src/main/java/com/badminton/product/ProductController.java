@@ -25,7 +25,6 @@ import lombok.RequiredArgsConstructor;
  * 商品 Controller — 取代原本的 ProductServlet + ProductQueryServlet
  */
 @Controller
-@RequestMapping("/product")
 @RequiredArgsConstructor
 public class ProductController {
 
@@ -35,19 +34,19 @@ public class ProductController {
     @Value("${app.upload.dir:#{null}}")
     private String uploadDir;
 
-    @GetMapping("")
+    @GetMapping("/product")
     public String productIndex() {
         return "product/index"; // 會尋找 src/main/resources/templates/product/index.html
     }
 
-    @GetMapping("/list")
+    @GetMapping({"/product/list", "/products"})
     public String productList(Model model) {
         List<Product> products = productService.findAll();
         model.addAttribute("products", products);
         return "product/list";
     }
 
-    @GetMapping("/search")
+    @GetMapping("/product/search")
     public String searchProduct(@RequestParam(required = false) String keyword, Model model) {
         List<Product> products = productService.searchByKeyword(keyword);
         model.addAttribute("products", products);
@@ -55,12 +54,12 @@ public class ProductController {
         return "product/list";
     }
 
-    @GetMapping("/add")
+    @GetMapping("/product/add")
     public String showInsertForm() {
         return "product/insert";
     }
 
-    @GetMapping("/edit")
+    @GetMapping("/product/edit")
     public String showUpdateForm(@RequestParam Integer productId, Model model) {
         Product product = productService.findById(productId);
         if (product == null) {
@@ -70,7 +69,7 @@ public class ProductController {
         return "product/update";
     }
 
-    @PostMapping("/add")
+    @PostMapping("/product/add")
     public String insertProduct(
             @RequestParam String productName,
             @RequestParam(required = false) String category,
@@ -109,7 +108,7 @@ public class ProductController {
         return "redirect:/product/list";
     }
 
-    @PostMapping("/edit")
+    @PostMapping("/product/edit")
     public String updateProduct(
             @RequestParam Integer productId,
             @RequestParam String productName,
@@ -148,7 +147,7 @@ public class ProductController {
         return "redirect:/product/list";
     }
 
-    @PostMapping("/delete")
+    @PostMapping("/product/delete")
     public String deleteProduct(
             @RequestParam Integer productId,
             RedirectAttributes redirectAttributes) {
@@ -162,7 +161,7 @@ public class ProductController {
     }
 
     // 取代 ProductQueryServlet API
-    @GetMapping("/api/query")
+    @GetMapping("/product/api/query")
     @ResponseBody
     public Object apiQuery(
             @RequestParam(required = false) Integer id,
