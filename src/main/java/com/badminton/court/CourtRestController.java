@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,6 +45,12 @@ public class CourtRestController {
 	public Court update(@PathVariable Integer id, @RequestBody Court court) {
 		court.setCourtId(id);
 		return courtService.save(court);
+	}
+	
+	// DELETE /api/courts/3
+	@DeleteMapping("/{id}")
+	public void delete(@PathVariable Integer id) {
+		courtService.deleteById(id);
 	}
 	
 	// PATCH /api/courts/3/status  (Body: {"status":"INACTIVE"})
