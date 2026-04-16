@@ -43,7 +43,5 @@ public class BookingRestController {
 	public Booking updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
 		return bookingService.updateStatus(id, BookingStatus.valueOf(body.get("status")));
 	}
-	
-	
 
 }

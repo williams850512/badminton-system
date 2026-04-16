@@ -2,17 +2,13 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <!--
     ============================================================
-    場館管理 CRUD 頁面
+    球場管理 CRUD 頁面
     ============================================================
-    【組員模板說明】複製這個檔案後，只需修改：
-    1. head 裡的頁面標題
-    2. page-header 區的標題和按鈕文字
-    3. 表格的欄位（thead + tbody 渲染）
-    4. Modal 表單的欄位
-    5. JavaScript 裡的 API 路徑和欄位名稱
+    依照 venue/list.html 格式製作
+    欄位：ID、所屬場館、球場名稱、狀態、操作
     ============================================================
 -->
-<head th:replace="~{layout/backend :: head('場館管理')}"></head>
+<head th:replace="~{layout/backend :: head('球場管理')}"></head>
 <body>
 
     <!-- ===== Header 導覽列 ===== -->
@@ -22,34 +18,33 @@
         <!-- ===== Sidebar 側邊欄 ===== -->
         <aside th:replace="~{layout/backend :: sidebar}"></aside>
 
-        <!-- ===== 主內容區（只改這裡面！）===== -->
+        <!-- ===== 主內容區 ===== -->
         <main class="main-content">
 
             <!-- 頁面標題 + 新增按鈕 -->
             <div class="page-header">
-                <h2><i class="bi bi-building"></i> 場館管理</h2>
+                <h2><i class="bi bi-dribbble"></i> 球場管理</h2>
                 <button class="btn btn-primary" onclick="openCreateModal()">
-                    <i class="bi bi-plus-lg"></i> 新增場館
+                    <i class="bi bi-plus-lg"></i> 新增球場
                 </button>
             </div>
 
-            <!-- 場館資料表格 -->
+            <!-- 球場資料表格 -->
             <div class="card">
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0" id="venueTable">
+                    <table class="table table-hover mb-0" id="courtTable">
                         <thead class="table-dark">
                             <tr>
                                 <th>ID</th>
-                                <th>場館名稱</th>
-                                <th>地址</th>
-                                <th>電話</th>
+                                <th>所屬場館</th>
+                                <th>球場名稱</th>
                                 <th>狀態</th>
                                 <th style="width: 200px">操作</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody">
                             <tr class="loading-row">
-                                <td colspan="6">
+                                <td colspan="5">
                                     <div class="spinner-border spinner-border-sm text-primary"></div>
                                     載入中...
                                 </td>
@@ -66,38 +61,34 @@
     <footer th:replace="~{layout/backend :: footer}"></footer>
 
     <!-- ===== 新增/編輯 Modal ===== -->
-    <div class="modal fade" id="venueModal" tabindex="-1">
+    <div class="modal fade" id="courtModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">新增場館</h5>
+                    <h5 class="modal-title" id="modalTitle">新增球場</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="venueForm">
+                    <form id="courtForm">
                         <!-- 隱藏欄位：記錄正在編輯的 ID（新增時為空） -->
                         <input type="hidden" id="editId">
 
                         <div class="mb-3">
-                            <label for="venueName" class="form-label">場館名稱 <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="venueName"
-                                   placeholder="例：大安運動中心" required>
-                        </div>	
-                        <div class="mb-3">
-                            <label for="address" class="form-label">地址</label>
-                            <input type="text" class="form-control" id="address"
-                                   placeholder="例：台北市大安區辛亥路三段382號">
+                            <label for="venueId" class="form-label">所屬場館 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="venueId" required>
+                                <option value="">-- 請選擇場館 --</option>
+                            </select>
                         </div>
                         <div class="mb-3">
-                            <label for="phone" class="form-label">電話</label>
-                            <input type="text" class="form-control" id="phone"
-                                   placeholder="例：02-2733-1369">
+                            <label for="courtName" class="form-label">球場名稱 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="courtName"
+                                   placeholder="例：A1 羽球場" required>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="saveVenue()">
+                    <button type="button" class="btn btn-primary" onclick="saveCourt()">
                         <i class="bi bi-check-lg"></i> 儲存
                     </button>
                 </div>
@@ -111,62 +102,63 @@
     <!-- ===== 本頁 JavaScript（AJAX + DOM 操作）===== -->
     <script>
         // ============================================================
-        // API 路徑（修改這裡就能套用到其他模組）
+        // API 路徑
         // ============================================================
-        const API_URL = '/api/venues';
+        const API_URL       = '/api/courts';
+        const VENUE_API_URL = '/api/venues';
 
         // Bootstrap Modal 實例
-        let venueModal;
+        let courtModal;
 
         // ============================================================
         // 頁面載入
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
-            venueModal = new bootstrap.Modal(document.getElementById('venueModal'));
+            courtModal = new bootstrap.Modal(document.getElementById('courtModal'));
             loadData();
         });
 
         // ============================================================
-        // 【READ】載入所有場館
+        // 【READ】載入所有球場
         // ============================================================
         async function loadData() {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = `
                 <tr class="loading-row">
-                    <td colspan="6">
+                    <td colspan="5">
                         <div class="spinner-border spinner-border-sm text-primary"></div> 載入中...
                     </td>
                 </tr>`;
 
             try {
-                const response = await fetch(API_URL);     // GET /api/venues
-                const venues = await response.json();
+                const response = await fetch(API_URL);     // GET /api/courts
+                const courts = await response.json();
 
-                if (venues.length === 0) {
+                if (courts.length === 0) {
                     tbody.innerHTML = `
-                        <tr><td colspan="6" class="text-center text-muted py-4">
-                            目前沒有場館資料，請點擊「新增場館」按鈕
+                        <tr><td colspan="5" class="text-center text-muted py-4">
+                            目前沒有球場資料，請點擊「新增球場」按鈕
                         </td></tr>`;
                     return;
                 }
 
                 tbody.innerHTML = '';
-                venues.forEach(venue => {
+                courts.forEach(court => {
+                    const venueName = court.venue ? court.venue.venueName : '<span class="text-muted">-</span>';
                     tbody.innerHTML += `
                         <tr>
-                            <td>${venue.venueId}</td>
-                            <td><strong>${venue.venueName}</strong></td>
-                            <td>${venue.address || '<span class="text-muted">-</span>'}</td>
-                            <td>${venue.phone || '<span class="text-muted">-</span>'}</td>
-                            <td>${getStatusBadge(venue.status)}</td>
+                            <td>${court.courtId}</td>
+                            <td>${venueName}</td>
+                            <td><strong>${court.courtName}</strong></td>
+                            <td>${getStatusBadge(court.status)}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-primary" title="編輯"
-                                            onclick='openEditModal(${JSON.stringify(venue)})'>
+                                            onclick='openEditModal(${JSON.stringify(court)})'>
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="刪除"
-                                            onclick="deleteVenue(${venue.venueId}, '${venue.venueName}')">
+                                            onclick="deleteCourt(${court.courtId}, '${court.courtName}')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                     <div class="btn-group btn-group-sm">
@@ -176,15 +168,15 @@
                                         </button>
                                         <ul class="dropdown-menu">
                                             <li><a class="dropdown-item" href="#" 
-                                                   onclick="changeStatus(${venue.venueId}, 'ACTIVE')">
-                                                <i class="bi bi-check-circle text-success"></i> 營業中
+                                                   onclick="changeStatus(${court.courtId}, 'ACTIVE')">
+                                                <i class="bi bi-check-circle text-success"></i> 可使用
                                             </a></li>
                                             <li><a class="dropdown-item" href="#" 
-                                                   onclick="changeStatus(${venue.venueId}, 'MAINTENANCE')">
-                                                <i class="bi bi-tools text-warning"></i> 整修中
+                                                   onclick="changeStatus(${court.courtId}, 'MAINTENANCE')">
+                                                <i class="bi bi-tools text-warning"></i> 維護中
                                             </a></li>
                                             <li><a class="dropdown-item" href="#" 
-                                                   onclick="changeStatus(${venue.venueId}, 'INACTIVE')">
+                                                   onclick="changeStatus(${court.courtId}, 'INACTIVE')">
                                                 <i class="bi bi-x-circle text-danger"></i> 停用
                                             </a></li>
                                         </ul>
@@ -196,7 +188,7 @@
 
             } catch (error) {
                 tbody.innerHTML = `
-                    <tr><td colspan="6" class="text-center text-danger py-4">
+                    <tr><td colspan="5" class="text-center text-danger py-4">
                         <i class="bi bi-exclamation-triangle"></i> 載入失敗：${error.message}
                         <br><button class="btn btn-sm btn-outline-primary mt-2" onclick="loadData()">重試</button>
                     </td></tr>`;
@@ -208,49 +200,75 @@
         // ============================================================
         function getStatusBadge(status) {
             const map = {
-                'ACTIVE':      '<span class="badge badge-active">營業中</span>',
+                'ACTIVE':      '<span class="badge badge-active">可使用</span>',
                 'INACTIVE':    '<span class="badge badge-inactive">已停用</span>',
-                'MAINTENANCE': '<span class="badge badge-maintenance">整修中</span>'
+                'MAINTENANCE': '<span class="badge badge-maintenance">維護中</span>'
             };
             return map[status] || `<span class="badge bg-secondary">${status}</span>`;
         }
 
         // ============================================================
+        // 載入場館下拉選單（供 Modal 使用）
+        // ============================================================
+        async function loadVenueOptions() {
+            const select = document.getElementById('venueId');
+            // 保留第一個「請選擇」選項，清掉後面的
+            select.innerHTML = '<option value="">-- 請選擇場館 --</option>';
+
+            try {
+                const response = await fetch(VENUE_API_URL);   // GET /api/venues
+                const venues = await response.json();
+                venues.forEach(venue => {
+                    // 只列出營業中的場館
+                    if (venue.status === 'ACTIVE') {
+                        select.innerHTML += `<option value="${venue.venueId}">${venue.venueName}</option>`;
+                    }
+                });
+            } catch (error) {
+                console.error('載入場館清單失敗', error);
+            }
+        }
+
+        // ============================================================
         // 【CREATE】打開新增 Modal
         // ============================================================
-        function openCreateModal() {
-            document.getElementById('modalTitle').textContent = '新增場館';
-            document.getElementById('venueForm').reset();   // 清空表單
+        async function openCreateModal() {
+            document.getElementById('modalTitle').textContent = '新增球場';
+            document.getElementById('courtForm').reset();   // 清空表單
             document.getElementById('editId').value = '';    // 清空 ID
-            venueModal.show();
+            await loadVenueOptions();                        // 重新載入場館下拉
+            courtModal.show();
         }
 
         // ============================================================
         // 【UPDATE】打開編輯 Modal（帶入舊資料）
         // ============================================================
-        function openEditModal(venue) {
-            document.getElementById('modalTitle').textContent = '編輯場館';
-            document.getElementById('editId').value = venue.venueId;
-            document.getElementById('venueName').value = venue.venueName;
-            document.getElementById('address').value = venue.address || '';
-            document.getElementById('phone').value = venue.phone || '';
-            venueModal.show();
+        async function openEditModal(court) {
+            document.getElementById('modalTitle').textContent = '編輯球場';
+            document.getElementById('editId').value = court.courtId;
+            await loadVenueOptions();                        // 重新載入場館下拉
+            document.getElementById('venueId').value = court.venue ? court.venue.venueId : '';
+            document.getElementById('courtName').value = court.courtName;
+            courtModal.show();
         }
 
         // ============================================================
         // 【CREATE / UPDATE】儲存（根據有無 ID 判斷新增或更新）
         // ============================================================
-        async function saveVenue() {
+        async function saveCourt() {
             const id = document.getElementById('editId').value;
             const data = {
-                venueName: document.getElementById('venueName').value.trim(),
-                address:   document.getElementById('address').value.trim(),
-                phone:     document.getElementById('phone').value.trim()
+                courtName: document.getElementById('courtName').value.trim(),
+                venue:     { venueId: parseInt(document.getElementById('venueId').value) }
             };
 
             // 簡易前端驗證
-            if (!data.venueName) {
-                alert('請輸入場館名稱！');
+            if (!data.courtName) {
+                alert('請輸入球場名稱！');
+                return;
+            }
+            if (!document.getElementById('venueId').value) {
+                alert('請選擇所屬場館！');
                 return;
             }
 
@@ -273,7 +291,7 @@
                 }
 
                 if (response.ok) {
-                    venueModal.hide();              // 關閉 Modal
+                    courtModal.hide();              // 關閉 Modal
                     loadData();                     // 重新載入表格
                     alert(id ? '更新成功！' : '新增成功！');
                 } else {
@@ -286,9 +304,9 @@
         }
 
         // ============================================================
-        // 【DELETE】刪除場館
+        // 【DELETE】刪除球場
         // ============================================================
-        async function deleteVenue(id, name) {
+        async function deleteCourt(id, name) {
             if (!confirm(`確定要刪除「${name}」嗎？`)) return;
 
             try {

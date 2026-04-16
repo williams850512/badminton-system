@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/backend :: head('新增商品')}"></head>
+<body>
+
+    <!-- ===== Header 導覽列 ===== -->
+    <nav th:replace="~{layout/backend :: header}"></nav>
+
+    <div class="d-flex">
+        <!-- ===== Sidebar 側邊欄 ===== -->
+        <aside th:replace="~{layout/backend :: sidebar}"></aside>
+
+        <!-- ===== 主內容區 ===== -->
+        <main class="main-content">
+            <div class="page-header">
+                <h2><i class="bi bi-plus-circle"></i> 新增商品</h2>
+            </div>
+
+            <div class="content-body">
+                <div class="card shadow-sm border-0 p-4" style="max-width: 800px;">
+                    <form th:action="@{/product/add}" method="post" enctype="multipart/form-data">
+                        
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">商品名稱 <span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="text" name="productName" required>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">分類 <span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="text" name="category" required>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">品牌</label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="text" name="brand">
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">價格 <span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="number" step="0.01" name="price" required>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">庫存 <span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="number" name="stockQty" required>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">描述</label>
+                            <div class="col-sm-10">
+                                <textarea class="form-control" name="description" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">商品圖片</label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="file" name="image" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">狀態</label>
+                            <div class="col-sm-10">
+                                <select class="form-select" name="status">
+                                    <option value="active">上架 (active)</option>
+                                    <option value="inactive">下架 (inactive)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">建立日期</label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="date" name="productCreateAt">
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 儲存新增</button>
+                            <a class="btn btn-outline-secondary" th:href="@{/product/list}">取消返回</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <footer th:replace="~{layout/backend :: footer}"></footer>
+
+    <!-- ===== 共用 Scripts ===== -->
+    <div th:replace="~{layout/backend :: scripts}"></div>
+</body>
+</html>
