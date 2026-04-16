@@ -186,15 +186,41 @@
             });
 
             // 電話自動帶入橫線 09xx-xxx-xxx
-            document.getElementById('phone').addEventListener('input', function(e) {
+            const phoneInput = document.getElementById('phone');
+            let isFormatting = false;
+            let isComposing = false;
+
+            phoneInput.addEventListener('compositionstart', function() {
+                isComposing = true;
+            });
+
+            phoneInput.addEventListener('compositionend', function(e) {
+                isComposing = false;
+                formatPhone(e);
+            });
+
+            phoneInput.addEventListener('input', function(e) {
+                if (isComposing) return;
+                formatPhone(e);
+            });
+
+            function formatPhone(e) {
+                if (isFormatting) return;
+                isFormatting = true;
+
                 let v = e.target.value.replace(/\D/g, '');
                 if (v.length > 10) v = v.substring(0, 10);
                 let f = '';
                 if (v.length > 0) f = v.substring(0, 4);
                 if (v.length > 4) f += '-' + v.substring(4, 7);
                 if (v.length > 7) f += '-' + v.substring(7, 10);
+
+                const cursorPos = f.length;
                 e.target.value = f;
-            });
+                e.target.setSelectionRange(cursorPos, cursorPos);
+
+                isFormatting = false;
+            }
 
             // 日期選取完畢自動關閉
             document.getElementById('birthday').addEventListener('change', function() {

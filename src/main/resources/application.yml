@@ -6,7 +6,7 @@ spring:
   # Do NOT put real passwords here!
   # Create your own application-local.yml (see README)
   datasource:
-    url: jdbc:sqlserver://172.22.33.74:1433;databaseName=BadmintonDB;encrypt=false;trustServerCertificate=true
+    url: jdbc:sqlserver://localhost:1433;databaseName=BadmintonDB;encrypt=false;trustServerCertificate=true
     username: sa
     password: BadmintonDB2026!
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
@@ -19,6 +19,7 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+        physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
         format_sql: true
 
   # ===== Thymeleaf =====

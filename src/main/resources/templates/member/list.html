@@ -187,15 +187,43 @@
             });
 
             // 電話自動帶入橫線 09xx-xxx-xxx
-            document.getElementById('phone').addEventListener('input', function(e) {
+            const phoneInput = document.getElementById('phone');
+            let isFormatting = false;  // 防止重複觸發
+            let isComposing = false;   // 偵測中文輸入法（IME）組字狀態
+
+            // 中文輸入法開始組字時，暫停格式化
+            phoneInput.addEventListener('compositionstart', function() {
+                isComposing = true;
+            });
+
+            // 中文輸入法結束組字後，恢復格式化並立即執行一次
+            phoneInput.addEventListener('compositionend', function(e) {
+                isComposing = false;
+                formatPhone(e);  // 組字結束後手動觸發格式化
+            });
+
+            phoneInput.addEventListener('input', function(e) {
+                if (isComposing) return;  // IME 組字中，跳過
+                formatPhone(e);
+            });
+
+            function formatPhone(e) {
+                if (isFormatting) return;
+                isFormatting = true;
+
                 let v = e.target.value.replace(/\D/g, '');  // 只保留數字
                 if (v.length > 10) v = v.substring(0, 10);  // 最多 10 位
                 let f = '';
                 if (v.length > 0) f = v.substring(0, 4);
                 if (v.length > 4) f += '-' + v.substring(4, 7);
                 if (v.length > 7) f += '-' + v.substring(7, 10);
+
+                const cursorPos = f.length;
                 e.target.value = f;
-            });
+                e.target.setSelectionRange(cursorPos, cursorPos);
+
+                isFormatting = false;
+            }
 
             // 日期選取完畢自動關閉
             document.getElementById('birthday').addEventListener('change', function() {
