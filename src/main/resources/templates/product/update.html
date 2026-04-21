@@ -62,7 +62,7 @@
                             <label class="col-sm-2 col-form-label">目前圖片</label>
                             <div class="col-sm-10">
                                 <img class="img-thumbnail" 
-                                     th:src="|/${product.imageUrl != null ? product.imageUrl : 'images/products/default.png'}|" 
+                                     th:src="${product.imageUrl != null && product.imageUrl.startsWith('/') ? product.imageUrl : '/' + (product.imageUrl ?: 'images/products/default.png')}" 
                                      width="150"
                                      onerror="this.onerror=null; this.src='/images/products/default.png';">
                                 <input type="hidden" name="imageUrl" th:value="${product.imageUrl}">

@@ -52,7 +52,7 @@
                             <tr th:each="product : ${products}">
                                 <td th:text="${product.productId}"></td>
                                 <td>
-                                    <img th:src="@{'/' + ${product.imageUrl}}" width="80" class="img-thumbnail"
+                                    <img th:src="${product.imageUrl != null && product.imageUrl.startsWith('/') ? product.imageUrl : '/' + (product.imageUrl ?: 'images/products/default.png')}" width="80" class="img-thumbnail"
                                          onerror="this.onerror=null; this.src='/images/products/default.png';">
                                 </td>
                                 <td><strong th:text="${product.productName}"></strong></td>

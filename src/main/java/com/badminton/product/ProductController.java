@@ -200,15 +200,18 @@ public class ProductController {
 
         try {
             String fileName = UUID.randomUUID() + "_" + image.getOriginalFilename();
-            String path = (uploadDir != null) ? uploadDir : System.getProperty("user.dir") + "/src/main/resources/static/images/products";
+            // 使用外部目錄，避免存到 src/main/resources/static（classpath 不會即時更新）
+            String path = (uploadDir != null) ? uploadDir : "./uploads/products";
             
-            File dir = new File(path);
+            File dir = new File(path).getAbsoluteFile();
             if (!dir.exists()) {
                 dir.mkdirs();
             }
 
-            image.transferTo(new File(dir, fileName));
-            return "images/products/" + fileName;
+            File dest = new File(dir, fileName);
+            image.transferTo(dest);
+            // 回傳對應的 URL 路徑（需搭配 ResourceHandler 映射）
+            return "/uploads/products/" + fileName;
 
         } catch (IOException e) {
             e.printStackTrace();
