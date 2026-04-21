@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/backend :: head('揪團報名管理')}"></head>
+<body>
+
+    <!-- ===== Header 導覽列 ===== -->
+    <nav th:replace="~{layout/backend :: header}"></nav>
+
+    <div class="d-flex">
+        <!-- ===== Sidebar 側邊欄 ===== -->
+        <aside th:replace="~{layout/backend :: sidebar}"></aside>
+
+        <!-- ===== 主內容區 ===== -->
+        <main class="main-content">
+
+            <!-- 頁面標題 + 新增按鈕 -->
+            <div class="page-header">
+                <h2><i class="bi bi-person-check"></i> 揪團報名管理</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="bi bi-plus-lg"></i> 新增報名
+                </button>
+            </div>
+
+            <!-- 報名資料表格 -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0" id="signupTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>揪團 ID</th>
+                                <th>揪團日期</th>
+                                <th>會員</th>
+                                <th>狀態</th>
+                                <th>報名時間</th>
+                                <th style="width: 200px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr class="loading-row">
+                                <td colspan="7">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                    載入中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <footer th:replace="~{layout/backend :: footer}"></footer>
+
+    <!-- ===== 新增/編輯 Modal ===== -->
+    <div class="modal fade" id="signupModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">新增報名</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="signupForm">
+                        <input type="hidden" id="editId">
+
+                        <div class="mb-3">
+                            <label for="gameId" class="form-label">揪團 ID <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="gameId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="memberId" class="form-label">會員 ID <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="memberId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="status" class="form-label">狀態</label>
+                            <select class="form-select" id="status">
+                                <option value="joined">已報名 (joined)</option>
+                                <option value="cancelled">已取消 (cancelled)</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSignup()">
+                        <i class="bi bi-check-lg"></i> 儲存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 共用 Scripts ===== -->
+    <div th:replace="~{layout/backend :: scripts}"></div>
+
+    <!-- ===== 本頁 JavaScript ===== -->
+    <script>
+        const API_URL = '/api/pickup-game-signups';
+        let signupModal;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            signupModal = new bootstrap.Modal(document.getElementById('signupModal'));
+            loadData();
+        });
+
+        // 載入表格資料
+        async function loadData() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '<tr class="loading-row"><td colspan="7"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</td></tr>';
+
+            try {
+                const response = await fetch(API_URL);
+                const signups = await response.json();
+
+                if (signups.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">目前沒有報名資料</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                signups.forEach(signup => {
+                    const gameDateStr = signup.game ? signup.game.gameDate : '-';
+                    const gameIdStr = signup.game ? signup.game.gameId : '-';
+                    const memberName = signup.member ? signup.member.fullName : '-';
+                    const memberId = signup.member ? signup.member.memberId : '-';
+                    const signedUpAt = signup.signedUpAt ? signup.signedUpAt.replace('T', ' ').substring(0, 19) : '-';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${signup.signupId}</td>
+                            <td><strong>${gameIdStr}</strong></td>
+                            <td>${gameDateStr}</td>
+                            <td>${memberName} <small class="text-muted">(ID: ${memberId})</small></td>
+                            <td>${getStatusBadge(signup.status)}</td>
+                            <td><small>${signedUpAt}</small></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" title="編輯" onclick='openEditModal(${JSON.stringify(signup)})'>
+                                        <i class="bi bi-pencil"></i> 編輯
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="刪除"
+                                            onclick="deleteSignup(${signup.signupId})">
+                                        <i class="bi bi-trash"></i> 刪除
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">載入失敗：${error.message}</td></tr>`;
+            }
+        }
+
+        function getStatusBadge(status) {
+            const map = {
+                'joined':    '<span class="badge bg-success">已報名</span>',
+                'cancelled': '<span class="badge bg-secondary">已取消</span>'
+            };
+            return map[status] || `<span class="badge bg-info">${status}</span>`;
+        }
+
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = '新增報名';
+            document.getElementById('signupForm').reset();
+            document.getElementById('editId').value = '';
+            signupModal.show();
+        }
+
+        // 打開編輯 Modal (帶入舊資料)
+        function openEditModal(signup) {
+            document.getElementById('modalTitle').textContent = '編輯報名';
+
+            document.getElementById('editId').value = signup.signupId;
+            document.getElementById('gameId').value = signup.game ? signup.game.gameId : '';
+            document.getElementById('memberId').value = signup.member ? signup.member.memberId : '';
+            document.getElementById('status').value = signup.status || 'joined';
+
+            signupModal.show();
+        }
+
+        // 新增 / 編輯報名
+        async function saveSignup() {
+            const id = document.getElementById('editId').value;
+            const data = {
+                game: { gameId: parseInt(document.getElementById('gameId').value) },
+                member: { memberId: parseInt(document.getElementById('memberId').value) },
+                status: document.getElementById('status').value
+            };
+
+            if (!data.game.gameId || !data.member.memberId) {
+                alert('請填寫揪團 ID 與會員 ID！');
+                return;
+            }
+
+            try {
+                let response;
+                if (id) {
+                    response = await fetch(`${API_URL}/${id}`, {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                } else {
+                    response = await fetch(API_URL, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                }
+
+                if (response.ok) {
+                    signupModal.hide();
+                    loadData();
+                    alert(id ? '更新成功！' : '報名新增成功！');
+                } else {
+                    const err = await response.text();
+                    console.error("錯誤:", err);
+                    alert('操作失敗！請確認揪團 ID 與會員 ID 是否存在。詳細訊息請看 Console。');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+
+        // 刪除報名
+        async function deleteSignup(id) {
+            if (!confirm(`確定要刪除報名 ID: ${id} 嗎？`)) return;
+            try {
+                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadData();
+                    alert('刪除成功！');
+                } else {
+                    alert('刪除失敗');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

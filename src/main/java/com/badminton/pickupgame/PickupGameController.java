@@ -16,4 +16,12 @@ public class PickupGameController {
 		return "pickupgame/list";    // → templates/pickupgame/list.html
 	}
 
+	/**
+	 * 揪團報名管理頁面（資料透過 AJAX 向 /api/pickup-game-signups 拿）
+	 */
+	@GetMapping("/signups")
+	public String signupsListPage() {
+		return "pickupgamesignup/list";  // → templates/pickupgamesignup/list.html
+	}
+
 }
