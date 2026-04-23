@@ -168,7 +168,7 @@
                     tbody.innerHTML += `
                         <tr>
                             <td>${order.orderId}</td>
-                            <td>${order.memberId}</td>
+                            <td>${order.member ? order.member.memberId : '-'}</td>
                             <td><strong>$${(order.totalAmount || 0).toLocaleString()}</strong></td>
                             <td>${getStatusBadge(order.status)}</td>
                             <td>${order.paymentType || '<span class="text-muted">-</span>'}</td>
@@ -259,7 +259,7 @@
         function openEditModal(order) {
             document.getElementById('modalTitle').textContent = '編輯訂單';
             document.getElementById('editId').value = order.orderId;
-            document.getElementById('memberId').value = order.memberId;
+            document.getElementById('memberId').value = order.member ? order.member.memberId : '';
             document.getElementById('memberId').disabled = true;  // 編輯時不可改會員
             document.getElementById('totalAmount').value = order.totalAmount;
             document.getElementById('totalAmount').disabled = true; // 總金額由明細自動計算
@@ -297,7 +297,7 @@
                 } else {
                     // 沒 ID → POST 新增
                     const data = {
-                        memberId:    parseInt(document.getElementById('memberId').value),
+                        member:      { memberId: parseInt(document.getElementById('memberId').value) },
                         totalAmount: parseInt(document.getElementById('totalAmount').value) || 0,
                         paymentType: document.getElementById('paymentType').value.trim(),
                         note:        document.getElementById('note').value.trim()

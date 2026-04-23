@@ -8,7 +8,8 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Integer> {
     
-    // Spring Data JPA 的魔法：只要按照命名規則宣告方法名稱
-    // 它就會自動幫你產出類似：SELECT * FROM Orders WHERE member_id = ? 的 SQL 語法
-    List<Order> findByMemberId(Integer memberId);
+    // Spring Data JPA 的魔法：member 現在是 @ManyToOne 關聯物件
+    // 使用底線 _ 表示「進入 member 物件裡面找 memberId 欄位」
+    // 等同於：SELECT * FROM Orders WHERE member_id = ?
+    List<Order> findByMember_MemberId(Integer memberId);
 }

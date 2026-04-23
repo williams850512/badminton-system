@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import com.badminton.court.Court;
+import com.badminton.member.Member;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,9 +33,9 @@ public class Booking {
 	@Column(name = "booking_id")
 	private Integer bookingId;
 	
-	//之後建 Member 再改 @ManyToOne
-	@Column(name = "member_id")
-	private Integer memberId;
+	@ManyToOne
+	@JoinColumn(name = "member_id")
+	private Member member;
 	
 	@ManyToOne
 	@JoinColumn(name = "court_id",nullable = false)

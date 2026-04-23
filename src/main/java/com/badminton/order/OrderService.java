@@ -23,7 +23,7 @@ public class OrderService {
     }
     
     public List<Order> getOrdersByMemberId(Integer memberId) {
-        return orderRepository.findByMemberId(memberId);
+        return orderRepository.findByMember_MemberId(memberId);
     }
 
     public List<OrderItem> getItemsByOrderId(Integer orderId) {
