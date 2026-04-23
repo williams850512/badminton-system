@@ -16,8 +16,8 @@ public class AdminController {
 
     @GetMapping
     public String listPage(HttpSession session) {
-        AdminBean adminUser = (AdminBean) session.getAttribute("adminUser");
-        if (adminUser == null || !"manager".equals(adminUser.getRole())) {
+        Admin adminUser = (Admin) session.getAttribute("adminUser");
+        if (adminUser == null || adminUser.getRole() != AdminRole.MANAGER) {
             return "redirect:/member";
         }
         return "admin/list"; 

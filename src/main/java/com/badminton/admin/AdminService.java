@@ -15,9 +15,9 @@ public class AdminService {
 
     // 管理員登入
     @Transactional
-    public Optional<AdminBean> login(String username, String password) {
+    public Optional<Admin> login(String username, String password) {
         if (username == null || password == null) return Optional.empty();
-        Optional<AdminBean> admin = adminRepo.findByLogin(username, password);
+        Optional<Admin> admin = adminRepo.findByLogin(username, password);
         admin.ifPresent(a -> adminRepo.updateLastLoginTime(a.getAdminId()));
         return admin;
     }
@@ -29,18 +29,18 @@ public class AdminService {
     }
 
     // 取得所有管理員清單
-    public List<AdminBean> getAllAdmins() {
+    public List<Admin> getAllAdmins() {
         return adminRepo.findAll();
     }
 
     // 根據 ID 取得特定管理員
-    public Optional<AdminBean> getAdminById(int id) {
+    public Optional<Admin> getAdminById(int id) {
         return adminRepo.findById(id);
     }
 
     // 新增管理員
     @Transactional
-    public AdminBean addAdmin(AdminBean admin) {
+    public Admin addAdmin(Admin admin) {
         if (admin == null || admin.getUsername() == null) return null;
         
         if (isAdminExists(admin.getUsername())) {
@@ -48,12 +48,12 @@ public class AdminService {
         }
         
         // 確保非空預設值
-        if (admin.getStatus() == null) admin.setStatus("active");
-        if (admin.getRole() == null) admin.setRole("staff");
+        if (admin.getStatus() == null) admin.setStatus(AdminStatus.ACTIVE);
+        if (admin.getRole() == null) admin.setRole(AdminRole.STAFF);
         admin.setFailedAttempts(0);
         
         // 手動寫入時間戳，確保絕不會拋出 NULL 錯誤
-        java.sql.Timestamp now = new java.sql.Timestamp(System.currentTimeMillis());
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
         admin.setCreatedAt(now);
         admin.setUpdatedAt(now);
         
@@ -62,7 +62,7 @@ public class AdminService {
 
     // 更新管理員資料
     @Transactional
-    public AdminBean updateAdmin(AdminBean admin) {
+    public Admin updateAdmin(Admin admin) {
         if (admin == null) return null;
         return adminRepo.findById(admin.getAdminId()).map(existing -> {
             
@@ -101,7 +101,7 @@ public class AdminService {
     }
 
     // 搜尋管理員
-    public List<AdminBean> searchAdmins(String keyword) {
+    public List<Admin> searchAdmins(String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {
             return adminRepo.findAll();
         }

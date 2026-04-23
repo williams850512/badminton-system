@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/member")
+@RequestMapping("/api/members")
 public class MemberRestController {
 
     @Autowired
@@ -30,9 +30,9 @@ public class MemberRestController {
 
     // 2. 註冊 新增會員
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody MemberBean member) {
+    public ResponseEntity<?> register(@RequestBody Member member) {
         try {
-            MemberBean savedMember = memberService.register(member);
+            Member savedMember = memberService.register(member);
             return ResponseEntity.ok(savedMember);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -41,14 +41,14 @@ public class MemberRestController {
 
     // 3. 搜尋
     @GetMapping("/search")
-    public List<MemberBean> search(@RequestParam String keyword) {
+    public List<Member> search(@RequestParam String keyword) {
         return memberService.searchMembers(keyword);
     }
 
     // 4. 取得個人資料
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(HttpSession session) {
-        MemberBean currentUser = (MemberBean) session.getAttribute("user");
+        Member currentUser = (Member) session.getAttribute("user");
         if (currentUser == null) {
             return ResponseEntity.status(401).body("未登入");
         }
@@ -59,14 +59,14 @@ public class MemberRestController {
 
     // 5. 更新資料
     @PutMapping("/profile")
-    public ResponseEntity<?> updateProfile(@RequestBody MemberBean member, HttpSession session) {
-        MemberBean currentUser = (MemberBean) session.getAttribute("user");
+    public ResponseEntity<?> updateProfile(@RequestBody Member member, HttpSession session) {
+        Member currentUser = (Member) session.getAttribute("user");
         if (currentUser != null) {
             member.setMemberId(currentUser.getMemberId());
         } else {
             return ResponseEntity.status(401).body("請重新登入後再修改");
         }
-        MemberBean updated = memberService.updateMember(member);
+        Member updated = memberService.updateMember(member);
         if (updated != null) {
             session.setAttribute("user", updated);
             return ResponseEntity.ok(updated);

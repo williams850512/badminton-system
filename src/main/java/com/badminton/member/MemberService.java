@@ -1,5 +1,6 @@
 package com.badminton.member;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,17 +16,17 @@ public class MemberService {
 
 	// 1. 會員登入
 	@Transactional
-	public Optional<MemberBean> login(String username, String password) {
+	public Optional<Member> login(String username, String password) {
 		if (username == null || password == null)
 			return Optional.empty();
-		Optional<MemberBean> member = memberRepo.findByLogin(username, password);
+		Optional<Member> member = memberRepo.findByLogin(username, password);
 		member.ifPresent(m -> memberRepo.updateLastLoginTime(m.getMemberId()));
 		return member;
 	}
 
 	// 2. 會員註冊
 	@Transactional
-	public MemberBean register(MemberBean m) {
+	public Member register(Member m) {
 		if (m == null || m.getUsername() == null)
 			return null;
 
@@ -35,12 +36,12 @@ public class MemberService {
 
 		// 設定初始預設值 (與 SQL DEFAULT 保持一致)
 		if (m.getStatus() == null)
-			m.setStatus("Active");
+			m.setStatus(MemberStatus.ACTIVE);
 		if (m.getMembershipLevel() == null)
-			m.setMembershipLevel("Normal");
+			m.setMembershipLevel(MembershipLevel.NORMAL);
 
 		// 手動寫入時間戳，確保不會觸發 created_at 不能為 NULL 的例外狀況
-		java.sql.Timestamp now = new java.sql.Timestamp(System.currentTimeMillis());
+		LocalDateTime now = LocalDateTime.now();
 		m.setCreatedAt(now);
 		m.setUpdatedAt(now);
 
@@ -55,17 +56,17 @@ public class MemberService {
 	}
 
 	// 3. 根據 ID 取得單一會員
-	public Optional<MemberBean> getMemberById(int id) {
+	public Optional<Member> getMemberById(int id) {
 		return memberRepo.findById(id);
 	}
 
 	// 4. 取得所有會員清單
-	public List<MemberBean> getAllMembers() {
+	public List<Member> getAllMembers() {
 		return memberRepo.findAll();
 	}
 
 	// 5. 搜尋會員 (對應原本 searchMembers，呼叫 Repository 的 9 欄位搜尋)
-	public List<MemberBean> searchMembers(String keyword) {
+	public List<Member> searchMembers(String keyword) {
 		if (keyword == null || keyword.trim().isEmpty()) {
 			return memberRepo.findAll();
 		}
@@ -74,7 +75,7 @@ public class MemberService {
 
 	// 6. 會員修改個人資料 (只更新允許的欄位，防止覆蓋密碼等敏感資料)
 	@Transactional
-	public MemberBean updateMember(MemberBean m) {
+	public Member updateMember(Member m) {
 		if (m == null)
 			return null;
 		return memberRepo.findById(m.getMemberId()).map(existing -> {
@@ -91,7 +92,7 @@ public class MemberService {
 
 	// 7. 管理員修改會員資料 (可修改 status, membershipLevel 等敏感欄位)
 	@Transactional
-	public MemberBean updateMemberByAdmin(MemberBean m) {
+	public Member updateMemberByAdmin(Member m) {
 		if (m == null)
 			return null;
 		return memberRepo.findById(m.getMemberId()).map(existing -> {

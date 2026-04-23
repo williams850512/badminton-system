@@ -1,7 +1,8 @@
 package com.badminton.admin;
 
-import com.badminton.member.MemberBean;
+import com.badminton.member.Member;
 import com.badminton.member.MemberService;
+import com.badminton.member.MemberStatus;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/admins")
 public class AdminRestController {
 
     @Autowired
@@ -32,7 +33,7 @@ public class AdminRestController {
 
     // 取得所有管理員清單
     @GetMapping("/list")
-    public List<AdminBean> getAllAdmins() {
+    public List<Admin> getAllAdmins() {
         return adminService.getAllAdmins();
     }
 
@@ -46,9 +47,9 @@ public class AdminRestController {
 
     // 新增管理員
     @PostMapping("/add")
-    public ResponseEntity<?> addAdmin(@RequestBody AdminBean admin) {
+    public ResponseEntity<?> addAdmin(@RequestBody Admin admin) {
         try {
-            AdminBean savedAdmin = adminService.addAdmin(admin);
+            Admin savedAdmin = adminService.addAdmin(admin);
             return ResponseEntity.ok(savedAdmin);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -57,9 +58,9 @@ public class AdminRestController {
 
     // 修改管理員資料
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateAdmin(@PathVariable int id, @RequestBody AdminBean admin) {
+    public ResponseEntity<?> updateAdmin(@PathVariable int id, @RequestBody Admin admin) {
         admin.setAdminId(id);
-        AdminBean updated = adminService.updateAdmin(admin);
+        Admin updated = adminService.updateAdmin(admin);
         return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
     }
 
@@ -76,7 +77,7 @@ public class AdminRestController {
 
     // 搜尋管理員
     @GetMapping("/search")
-    public List<AdminBean> searchAdmins(@RequestParam String keyword) {
+    public List<Admin> searchAdmins(@RequestParam String keyword) {
         return adminService.searchAdmins(keyword);
     }
 
@@ -89,12 +90,12 @@ public class AdminRestController {
 
     // ================= Member Management =================
     @GetMapping("/member")
-    public List<MemberBean> getAllMembers() {
+    public List<Member> getAllMembers() {
         return memberService.getAllMembers();
     }
 
     @GetMapping("/member/search")
-    public List<MemberBean> searchMembers(@RequestParam String keyword) {
+    public List<Member> searchMembers(@RequestParam String keyword) {
         return memberService.searchMembers(keyword);
     }
 
@@ -106,9 +107,9 @@ public class AdminRestController {
     }
 
     @PutMapping("/member/{id}")
-    public ResponseEntity<?> updateMemberByAdmin(@PathVariable int id, @RequestBody MemberBean member) {
+    public ResponseEntity<?> updateMemberByAdmin(@PathVariable int id, @RequestBody Member member) {
         member.setMemberId(id);
-        MemberBean updated = memberService.updateMemberByAdmin(member);
+        Member updated = memberService.updateMemberByAdmin(member);
         return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
     }
 
@@ -132,7 +133,7 @@ public class AdminRestController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateAdminStatus(@PathVariable int id, @RequestBody Map<String, String> data) {
         return adminService.getAdminById(id).map(admin -> {
-            admin.setStatus(data.get("status"));
+            admin.setStatus(AdminStatus.valueOf(data.get("status")));
             adminService.updateAdmin(admin);
             return ResponseEntity.ok("狀態更新成功");
         }).orElse(ResponseEntity.notFound().build());
@@ -142,7 +143,7 @@ public class AdminRestController {
     @PatchMapping("/member/{id}/status")
     public ResponseEntity<?> updateMemberStatus(@PathVariable int id, @RequestBody Map<String, String> data) {
         return memberService.getMemberById(id).map(member -> {
-            member.setStatus(data.get("status"));
+            member.setStatus(MemberStatus.valueOf(data.get("status")));
             memberService.updateMemberByAdmin(member);
             return ResponseEntity.ok("狀態更新成功");
         }).orElse(ResponseEntity.notFound().build());

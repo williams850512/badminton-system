@@ -6,12 +6,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import com.badminton.court.Court;
+import com.badminton.member.Member;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -37,7 +36,7 @@ public class PickupGames {
 	// 多筆揪團可以對應「同一個」主揪（Members）
 	@ManyToOne
 	@JoinColumn(name = "host_id", nullable = false)
-	private PickupGamesMember host;
+	private Member host;
 
 	// 多筆揪團可以在「同一個」場地（Court）上舉行
 	@ManyToOne

@@ -10,14 +10,14 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface MemberRepository extends JpaRepository<MemberBean, Integer> {
+public interface MemberRepository extends JpaRepository<Member, Integer> {
 
     // 1. 登入
     @Query(value = "SELECT * FROM Members WHERE " +
                    "username = :un COLLATE Latin1_General_CS_AS AND " +
                    "password = :pw COLLATE Latin1_General_CS_AS", 
            nativeQuery = true)
-    Optional<MemberBean> findByLogin(@Param("un") String username, @Param("pw") String password);
+    Optional<Member> findByLogin(@Param("un") String username, @Param("pw") String password);
 
     // 2. 查重
     boolean existsByUsername(String username);
@@ -29,7 +29,7 @@ public interface MemberRepository extends JpaRepository<MemberBean, Integer> {
     void updateLastLoginTime(@Param("id") int memberId);
 
     // 4. 搜尋
-    @Query("SELECT m FROM MemberBean m WHERE " +
+    @Query("SELECT m FROM Member m WHERE " +
            "CAST(m.memberId AS string) LIKE %:kw% OR " +
            "m.username LIKE %:kw% OR " +
            "m.fullName LIKE %:kw% OR " +
@@ -40,7 +40,7 @@ public interface MemberRepository extends JpaRepository<MemberBean, Integer> {
            "m.membershipLevel LIKE %:kw% OR " +
            "m.note LIKE %:kw% " +
            "ORDER BY m.memberId ASC")
-    List<MemberBean> searchMembers(@Param("kw") String keyword);
+    List<Member> searchMembers(@Param("kw") String keyword);
 
     // 5. 備註更新
     @Modifying
