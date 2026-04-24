@@ -5,5 +5,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PickupGameSignupsRepository extends JpaRepository<PickupGameSignups, Integer> {
+	boolean existsByGame_GameIdAndMember_MemberId(Integer gameId, Integer memberId);
 
 }
