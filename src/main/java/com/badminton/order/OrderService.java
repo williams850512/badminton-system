@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.badminton.product.Product;
+
 import java.util.List;
 
 @Service
@@ -47,10 +49,10 @@ public class OrderService {
     }
 
     // 更新單筆明細 (對應 V2 的 OrderItemDAO.updateItem)
-    public void updateOrderItem(Integer itemId, Integer productId, Integer quantity, Integer unitPrice) {
+    public void updateOrderItem(Integer itemId, Product product, Integer quantity, Integer unitPrice) {
         OrderItem item = orderItemRepository.findById(itemId).orElse(null);
         if (item != null) {
-            item.setProductId(productId);
+            item.setProduct(product);
             item.setQuantity(quantity);
             item.setUnitPrice(unitPrice);
             item.setSubtotal(quantity * unitPrice); // subtotal 由後端自動計算

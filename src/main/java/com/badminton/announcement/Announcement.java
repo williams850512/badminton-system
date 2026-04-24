@@ -1,5 +1,8 @@
 package com.badminton.announcement;
 import java.time.LocalDateTime;
+
+import com.badminton.admin.Admin;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -7,6 +10,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -23,8 +28,9 @@ public class Announcement {
 	@Column(name = "announcement_id")
 	private Integer announcementId;
 	
-	@Column(name = "admin_id")
-	private Integer adminId;
+	@ManyToOne
+	@JoinColumn(name="admin_id")
+	private Admin admin;
 	
 	@Column(name = "title", nullable = false, length = 255)
 	private String title;

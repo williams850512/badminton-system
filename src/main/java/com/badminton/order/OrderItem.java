@@ -1,5 +1,7 @@
   package com.badminton.order;
 
+import com.badminton.product.Product;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,12 +20,9 @@ public class OrderItem {
     @Column(name = "order_id", nullable = false)
     private Integer orderId;
 
-    @Column(name = "product_id", nullable = false)
-    private Integer productId;
-
-    // 此欄位來自 Products 表 Join 取得，不屬於 OrderItems 實體表結構
-    @Transient
-    private String productName;
+    @ManyToOne
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;

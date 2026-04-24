@@ -113,7 +113,7 @@ public class OrderRestController {
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
-        orderService.updateOrderItem(itemId, item.getProductId(), item.getQuantity(), item.getUnitPrice());
+        orderService.updateOrderItem(itemId, item.getProduct(), item.getQuantity(), item.getUnitPrice());
         return ResponseEntity.ok(orderService.getOrderItemById(itemId));
     }
 
