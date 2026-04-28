@@ -123,7 +123,7 @@
                             <div class="col-md-3 mb-3">
                                 <label for="membershipLevel" class="form-label">會員等級 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="membershipLevel" required>
-                                    <option value="Normal">一般會員</option>
+                                    <option value="NORMAL">一般會員</option>
                                     <option value="VIP">VIP 會員</option>
                                 </select>
                             </div>
@@ -165,11 +165,11 @@
         // ============================================================
         // API 路徑（修改這裡就能套用到其他模組）
         // ============================================================
-        const API_URL = '/api/admin/member';
+        const API_URL = '/api/admins/member';
 
         // 目前登入者角色（用於權限判斷）
         const currentRole = /*[[${session.adminUser != null ? session.adminUser.role : 'staff'}]]*/ 'staff';
-        const isManager = (currentRole === 'manager');
+        const isManager = (currentRole === 'MANAGER');
 
         // Bootstrap Modal 實例
         let memberModal;
@@ -319,7 +319,7 @@
                         <td>
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-outline-primary" title="編輯"
-                                        onclick='openEditModal(${JSON.stringify(m)})'>
+                                        onclick="openEditModal(${m.memberId})">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <button class="btn btn-outline-info" title="備註"
@@ -339,11 +339,11 @@
                                     </button>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" href="#"
-                                               onclick="changeStatus(${m.memberId}, 'Active')">
+                                               onclick="changeStatus(${m.memberId}, 'ACTIVE')">
                                             <i class="bi bi-check-circle text-success"></i> 正常
                                         </a></li>
                                         <li><a class="dropdown-item" href="#"
-                                               onclick="changeStatus(${m.memberId}, 'Suspended')">
+                                               onclick="changeStatus(${m.memberId}, 'INACTIVE')">
                                             <i class="bi bi-x-circle text-danger"></i> 停權
                                         </a></li>
                                     </ul>
@@ -359,8 +359,8 @@
         // ============================================================
         function getStatusBadge(status) {
             const map = {
-                'Active':    '<span class="badge badge-active">正常</span>',
-                'Suspended': '<span class="badge badge-inactive">停權</span>'
+                'ACTIVE':   '<span class="badge badge-active">正常</span>',
+                'INACTIVE': '<span class="badge badge-inactive">停權</span>'
             };
             return map[status] || `<span class="badge bg-secondary">${status}</span>`;
         }
@@ -387,25 +387,33 @@
         }
 
         // ============================================================
-        // 【UPDATE】打開編輯 Modal（帶入舊資料）
+        // 【UPDATE】打開編輯 Modal（透過 API 取得資料）
         // ============================================================
-        function openEditModal(member) {
-            document.getElementById('modalTitle').textContent = '編輯會員';
-            document.getElementById('editId').value = member.memberId;
-            document.getElementById('username').value = member.username;
-            document.getElementById('username').disabled = true;
-            document.getElementById('password').value = '';
-            document.getElementById('pwdRequired').style.display = 'none';
-            document.getElementById('fullName').value = member.fullName || '';
-            document.getElementById('fullName').disabled = false;
-            document.getElementById('gender').value = member.gender || '';
-            document.getElementById('gender').disabled = false;
-            document.getElementById('membershipLevel').value = member.membershipLevel || 'Normal';
-            document.getElementById('membershipLevel').disabled = !isManager;
-            document.getElementById('birthday').value = member.birthday || '';
-            document.getElementById('phone').value = member.phone || '';
-            document.getElementById('email').value = member.email || '';
-            memberModal.show();
+        async function openEditModal(memberId) {
+            try {
+                const response = await fetch(`${API_URL}/${memberId}`);
+                if (!response.ok) { Swal.fire('失敗', '無法取得會員資料', 'error'); return; }
+                const member = await response.json();
+
+                document.getElementById('modalTitle').textContent = '編輯會員';
+                document.getElementById('editId').value = member.memberId;
+                document.getElementById('username').value = member.username;
+                document.getElementById('username').disabled = true;
+                document.getElementById('password').value = '';
+                document.getElementById('pwdRequired').style.display = 'none';
+                document.getElementById('fullName').value = member.fullName || '';
+                document.getElementById('fullName').disabled = false;
+                document.getElementById('gender').value = member.gender || '';
+                document.getElementById('gender').disabled = false;
+                document.getElementById('membershipLevel').value = member.membershipLevel || 'NORMAL';
+                document.getElementById('membershipLevel').disabled = !isManager;
+                document.getElementById('birthday').value = member.birthday || '';
+                document.getElementById('phone').value = member.phone || '';
+                document.getElementById('email').value = member.email || '';
+                memberModal.show();
+            } catch (error) {
+                Swal.fire('錯誤', '請求失敗：' + error.message, 'error');
+            }
         }
 
         // ============================================================
@@ -458,7 +466,7 @@
                     });
                 } else {
                     // 沒 ID → POST 新增（走註冊 API）
-                    response = await fetch('/api/member/register', {
+                    response = await fetch('/api/members/register', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)

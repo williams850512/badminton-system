@@ -116,8 +116,8 @@
                             <div class="col-md-4 mb-3">
                                 <label for="role" class="form-label">職位權限 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="role" required>
-                                    <option value="staff">一般職員</option>
-                                    <option value="manager">主管</option>
+                                    <option value="STAFF">一般職員</option>
+                                    <option value="MANAGER">主管</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
@@ -165,7 +165,7 @@
         // ============================================================
         // API 路徑（修改這裡就能套用到其他模組）
         // ============================================================
-        const API_URL = '/api/admin';
+        const API_URL = '/api/admins';
 
         // 目前登入者資訊（用於排除自我刪除）
         const currentAdminId = /*[[${session.adminUser != null ? session.adminUser.adminId : -1}]]*/ -1;
@@ -318,7 +318,7 @@
                         <td>
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-outline-primary" title="編輯"
-                                        onclick='openEditModal(${JSON.stringify(a)})'>
+                                        onclick="openEditModal(${a.adminId})">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <button class="btn btn-outline-info" title="備註"
@@ -338,11 +338,11 @@
                                     </button>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" href="#"
-                                               onclick="changeStatus(${a.adminId}, 'active')">
+                                               onclick="changeStatus(${a.adminId}, 'ACTIVE')">
                                             <i class="bi bi-check-circle text-success"></i> 啟用
                                         </a></li>
                                         <li><a class="dropdown-item" href="#"
-                                               onclick="changeStatus(${a.adminId}, 'inactive')">
+                                               onclick="changeStatus(${a.adminId}, 'INACTIVE')">
                                             <i class="bi bi-x-circle text-danger"></i> 停用
                                         </a></li>
                                     </ul>
@@ -358,14 +358,14 @@
         // ============================================================
         function getStatusBadge(status) {
             const map = {
-                'active':   '<span class="badge badge-active">啟用中</span>',
-                'inactive': '<span class="badge badge-inactive">已停用</span>'
+                'ACTIVE':   '<span class="badge badge-active">啟用中</span>',
+                'INACTIVE': '<span class="badge badge-inactive">已停用</span>'
             };
             return map[status] || `<span class="badge bg-secondary">${status}</span>`;
         }
 
         function getRoleBadge(role) {
-            if (role === 'manager') return '<span class="badge bg-danger">💼 主管</span>';
+            if (role === 'MANAGER') return '<span class="badge bg-danger">💼 主管</span>';
             return '<span class="badge bg-primary">👤 一般職員</span>';
         }
 
@@ -383,24 +383,32 @@
         }
 
         // ============================================================
-        // 【UPDATE】打開編輯 Modal（帶入舊資料）
+        // 【UPDATE】打開編輯 Modal（透過 API 取得資料）
         // ============================================================
-        function openEditModal(admin) {
-            document.getElementById('modalTitle').textContent = '編輯職員';
-            document.getElementById('editId').value = admin.adminId;
-            document.getElementById('username').value = admin.username;
-            document.getElementById('username').disabled = true;
-            document.getElementById('password').value = '';
-            document.getElementById('pwdRequired').style.display = 'none';
-            document.getElementById('fullName').value = admin.fullName || '';
-            document.getElementById('role').value = admin.role || 'staff';
-            // 主管不能改自己的職位
-            document.getElementById('role').disabled = (admin.adminId === currentAdminId);
-            document.getElementById('gender').value = admin.gender || '';
-            document.getElementById('birthday').value = admin.birthday || '';
-            document.getElementById('phone').value = admin.phone || '';
-            document.getElementById('email').value = admin.email || '';
-            adminModal.show();
+        async function openEditModal(adminId) {
+            try {
+                const response = await fetch(`${API_URL}/${adminId}`);
+                if (!response.ok) { Swal.fire('失敗', '無法取得職員資料', 'error'); return; }
+                const admin = await response.json();
+
+                document.getElementById('modalTitle').textContent = '編輯職員';
+                document.getElementById('editId').value = admin.adminId;
+                document.getElementById('username').value = admin.username;
+                document.getElementById('username').disabled = true;
+                document.getElementById('password').value = '';
+                document.getElementById('pwdRequired').style.display = 'none';
+                document.getElementById('fullName').value = admin.fullName || '';
+                document.getElementById('role').value = admin.role || 'STAFF';
+                // 主管不能改自己的職位
+                document.getElementById('role').disabled = (admin.adminId === currentAdminId);
+                document.getElementById('gender').value = admin.gender || '';
+                document.getElementById('birthday').value = admin.birthday || '';
+                document.getElementById('phone').value = admin.phone || '';
+                document.getElementById('email').value = admin.email || '';
+                adminModal.show();
+            } catch (error) {
+                Swal.fire('錯誤', '請求失敗：' + error.message, 'error');
+            }
         }
 
         // ============================================================

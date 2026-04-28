@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -35,8 +35,10 @@ public class Member  {
     @Column(name = "username")
     private String username;
     
-    // @JsonIgnore: 序列化為 JSON 時忽略此欄位，防止密碼透過 API 回傳給前端
-    @JsonIgnore
+    // @JsonProperty(WRITE_ONLY): 
+    // - 前端傳 JSON 給後端時，password 會被接受（寫入）
+    // - 後端回傳 JSON 給前端時，password 不會被包含（不讀出）
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "password")
     private String password;
 

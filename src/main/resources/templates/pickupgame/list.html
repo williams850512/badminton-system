@@ -28,6 +28,8 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>ID</th>
+                                <th>主揪</th>
+                                <th>場地</th>
                                 <th>日期</th>
                                 <th>時間</th>
                                 <th>程度</th>
@@ -37,7 +39,7 @@
                         </thead>
                         <tbody id="tableBody">
                             <tr class="loading-row">
-                                <td colspan="6">
+                                <td colspan="8">
                                     <div class="spinner-border spinner-border-sm text-primary"></div>
                                     載入中...
                                 </td>
@@ -130,6 +132,9 @@
     <script>
         const API_URL = '/api/pickup-games';
         let gameModal;
+        
+        // 用於暫存揪團資料（避免 JSON.stringify 巢狀物件問題）
+        let cachedGames = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             gameModal = new bootstrap.Modal(document.getElementById('gameModal'));
@@ -169,29 +174,50 @@
         // 載入表格資料
         async function loadData() {
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '<tr class="loading-row"><td colspan="6"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</td></tr>';
+            tbody.innerHTML = '<tr class="loading-row"><td colspan="8"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</td></tr>';
 
             try {
                 const response = await fetch(API_URL);
                 const games = await response.json();
+                cachedGames = games; // 暫存供編輯用
 
                 if (games.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">目前沒有資料</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">目前沒有資料</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = '';
-                games.forEach(game => {
+                games.forEach((game, index) => {
+                    // 主揪顯示（從 @ManyToOne 關聯物件取得）
+                    let hostInfo = '<span class="text-muted">-</span>';
+                    if (game.host) {
+                        hostInfo = `${game.host.fullName || game.host.username} <small class="text-muted">(ID: ${game.host.memberId})</small>`;
+                    }
+
+                    // 場地顯示（從 @ManyToOne 關聯物件取得）
+                    let courtInfo = '<span class="text-muted">-</span>';
+                    if (game.court) {
+                        const venueName = game.court.venue ? game.court.venue.venueName : '';
+                        courtInfo = venueName ? `${venueName} / <strong>${game.court.courtName}</strong>` : `<strong>${game.court.courtName}</strong>`;
+                    }
+
+                    // 時間顯示
+                    const timeStr = (game.startTime && game.endTime)
+                        ? `${game.startTime.substring(0,5)} ~ ${game.endTime.substring(0,5)}`
+                        : '-';
+
                     tbody.innerHTML += `
                         <tr>
                             <td>${game.gameId}</td>
+                            <td>${hostInfo}</td>
+                            <td>${courtInfo}</td>
                             <td><strong>${game.gameDate}</strong></td>
-                            <td>${game.startTime} - ${game.endTime}</td>
+                            <td>${timeStr}</td>
                             <td>${getSkillLevelBadge(game.skillLevel)}</td>
                             <td>${getStatusBadge(game.status)}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary" title="編輯" onclick='openEditModal(${JSON.stringify(game)})'>
+                                    <button class="btn btn-outline-primary" title="編輯" onclick="openEditModal(${index})">
                                         <i class="bi bi-pencil"></i> 編輯
                                     </button>
                                     <button class="btn btn-outline-danger" title="刪除"
@@ -204,7 +230,7 @@
                 });
 
             } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">載入失敗：${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">載入失敗：${error.message}</td></tr>`;
             }
         }
 
@@ -236,8 +262,9 @@
             gameModal.show();
         }
 
-        // 打開編輯 Modal (帶入舊資料)
-        function openEditModal(game) {
+        // 打開編輯 Modal (帶入舊資料，從暫存陣列取得)
+        function openEditModal(index) {
+            const game = cachedGames[index];
             document.getElementById('modalTitle').textContent = '編輯揪團';
             
             // 填入表單

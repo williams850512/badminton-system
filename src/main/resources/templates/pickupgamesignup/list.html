@@ -101,6 +101,9 @@
         const API_URL = '/api/pickup-game-signups';
         let signupModal;
 
+        // 用於暫存報名資料（避免 JSON.stringify 巢狀物件問題）
+        let cachedSignups = [];
+
         document.addEventListener('DOMContentLoaded', function() {
             signupModal = new bootstrap.Modal(document.getElementById('signupModal'));
             loadData();
@@ -114,6 +117,7 @@
             try {
                 const response = await fetch(API_URL);
                 const signups = await response.json();
+                cachedSignups = signups; // 暫存供編輯用
 
                 if (signups.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">目前沒有報名資料</td></tr>';
@@ -121,10 +125,10 @@
                 }
 
                 tbody.innerHTML = '';
-                signups.forEach(signup => {
+                signups.forEach((signup, index) => {
                     const gameDateStr = signup.game ? signup.game.gameDate : '-';
                     const gameIdStr = signup.game ? signup.game.gameId : '-';
-                    const memberName = signup.member ? signup.member.fullName : '-';
+                    const memberName = signup.member ? (signup.member.fullName || signup.member.username) : '-';
                     const memberId = signup.member ? signup.member.memberId : '-';
                     const signedUpAt = signup.signedUpAt ? signup.signedUpAt.replace('T', ' ').substring(0, 19) : '-';
 
@@ -138,7 +142,7 @@
                             <td><small>${signedUpAt}</small></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary" title="編輯" onclick='openEditModal(${JSON.stringify(signup)})'>
+                                    <button class="btn btn-outline-primary" title="編輯" onclick="openEditModal(${index})">
                                         <i class="bi bi-pencil"></i> 編輯
                                     </button>
                                     <button class="btn btn-outline-danger" title="刪除"
@@ -170,8 +174,9 @@
             signupModal.show();
         }
 
-        // 打開編輯 Modal (帶入舊資料)
-        function openEditModal(signup) {
+        // 打開編輯 Modal (帶入舊資料，從暫存陣列取得)
+        function openEditModal(index) {
+            const signup = cachedSignups[index];
             document.getElementById('modalTitle').textContent = '編輯報名';
 
             document.getElementById('editId').value = signup.signupId;

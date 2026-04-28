@@ -37,7 +37,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>場館 / 球場</th>
-                                <th>會員ID</th>
+                                <th>會員</th>
                                 <th>預約日期</th>
                                 <th>時段</th>
                                 <th>金額</th>
@@ -227,6 +227,12 @@
                         courtInfo = `${venueName} / <strong>${booking.court.courtName}</strong>`;
                     }
 
+                    // 會員顯示（從 @ManyToOne 關聯物件取得）
+                    let memberInfo = '<span class="text-muted">-</span>';
+                    if (booking.member) {
+                        memberInfo = `${booking.member.fullName || booking.member.username} <small class="text-muted">(ID: ${booking.member.memberId})</small>`;
+                    }
+
                     // 時段顯示
                     const timeSlot = (booking.startTime && booking.endTime)
                         ? `${booking.startTime.substring(0,5)} ~ ${booking.endTime.substring(0,5)}`
@@ -241,7 +247,7 @@
                         <tr>
                             <td>${booking.bookingId}</td>
                             <td>${courtInfo}</td>
-                            <td>${booking.memberId || '<span class="text-muted">-</span>'}</td>
+                            <td>${memberInfo}</td>
                             <td>${booking.bookingDate || '<span class="text-muted">-</span>'}</td>
                             <td>${timeSlot}</td>
                             <td>${amount}</td>
@@ -398,7 +404,7 @@
 
             const data = {
                 court:       { courtId: parseInt(courtId) },
-                memberId:    document.getElementById('memberId').value ? parseInt(document.getElementById('memberId').value) : null,
+                member:      document.getElementById('memberId').value ? { memberId: parseInt(document.getElementById('memberId').value) } : null,
                 bookingDate: bookingDate,
                 startTime:   startTime,
                 endTime:     endTime,

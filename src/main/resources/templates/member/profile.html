@@ -137,7 +137,7 @@ const birthdayPicker = flatpickr("#birthdayPicker", {
 // 2. 頁面載入時獲取當前登入者資料
 document.addEventListener('DOMContentLoaded', function() {
     // 改為呼叫 MemberRestController 中的 @GetMapping("/profile")
-    fetch('/api/member/profile') 
+    fetch('/api/members/profile') 
         .then(res => {
             if (!res.ok) throw new Error('未登入或找不到使用者');
             return res.json();
@@ -193,7 +193,7 @@ document.getElementById('profileForm').addEventListener('submit', function(e) {
     jsonData.fullName = document.getElementById('fullName').value;
     jsonData.gender = document.getElementById('genderM').checked ? '男' : '女';
 
-    fetch('/api/member/profile', {
+    fetch('/api/members/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(jsonData)

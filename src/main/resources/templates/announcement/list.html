@@ -41,6 +41,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>標題</th>
+                                <th>發布者</th>
                                 <th>分類</th>
                                 <th>置頂</th>
                                 <th>瀏覽數</th>
@@ -50,7 +51,7 @@
                         </thead>
                         <tbody id="tableBody">
                             <tr class="loading-row">
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div class="spinner-border spinner-border-sm text-primary"></div>
                                     載入中...
                                 </td>
@@ -148,6 +149,9 @@
             loadData();
         });
 
+        // 用於暫存公告資料（避免 JSON.stringify 巢狀物件問題）
+        let cachedAnnouncements = [];
+
         // ============================================================
         // 【READ】載入所有公告
         // ============================================================
@@ -155,7 +159,7 @@
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = `
                 <tr class="loading-row">
-                    <td colspan="7">
+                    <td colspan="8">
                         <div class="spinner-border spinner-border-sm text-primary"></div> 載入中...
                     </td>
                 </tr>`;
@@ -163,21 +167,29 @@
             try {
                 const response = await fetch(API_URL);     // GET /api/announcements
                 const announcements = await response.json();
+                cachedAnnouncements = announcements; // 暫存供編輯用
 
                 if (announcements.length === 0) {
                     tbody.innerHTML = `
-                        <tr><td colspan="7" class="text-center text-muted py-4">
+                        <tr><td colspan="8" class="text-center text-muted py-4">
                             目前沒有公告資料，請點擊「新增公告」按鈕
                         </td></tr>`;
                     return;
                 }
 
                 tbody.innerHTML = '';
-                announcements.forEach(item => {
+                announcements.forEach((item, index) => {
+                    // 發布者顯示（從 @ManyToOne 關聯物件取得）
+                    let adminInfo = '<span class="text-muted">-</span>';
+                    if (item.admin) {
+                        adminInfo = `${item.admin.fullName || item.admin.username}`;
+                    }
+
                     tbody.innerHTML += `
                         <tr>
                             <td>${item.announcementId}</td>
                             <td><strong>${item.title}</strong></td>
+                            <td>${adminInfo}</td>
                             <td>${item.category || '<span class="text-muted">-</span>'}</td>
                             <td>${item.isPinned ? '<i class="bi bi-pin-fill text-danger"></i> 是' : '否'}</td>
                             <td>${item.viewCount || 0}</td>
@@ -185,11 +197,12 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-primary" title="編輯"
-                                            onclick='openEditModal(${JSON.stringify(item)})'>
+                                            onclick="openEditModal(${index})">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="刪除"
-                                            onclick="deleteAnnouncement(${item.announcementId}, '${item.title}')">
+                                            onclick="deleteAnnouncement(${item.announcementId}, '${item.title.replace(/'/g, "\\'")}')"
+>
                                         <i class="bi bi-trash"></i>
                                     </button>
                                     <div class="btn-group btn-group-sm">
@@ -219,7 +232,7 @@
 
             } catch (error) {
                 tbody.innerHTML = `
-                    <tr><td colspan="7" class="text-center text-danger py-4">
+                    <tr><td colspan="8" class="text-center text-danger py-4">
                         <i class="bi bi-exclamation-triangle"></i> 載入失敗：${error.message}
                         <br><button class="btn btn-sm btn-outline-primary mt-2" onclick="loadData()">重試</button>
                     </td></tr>`;
@@ -249,9 +262,10 @@
         }
 
         // ============================================================
-        // 【UPDATE】打開編輯 Modal（帶入舊資料）
+        // 【UPDATE】打開編輯 Modal（從暫存陣列取得資料）
         // ============================================================
-        function openEditModal(item) {
+        function openEditModal(index) {
+            const item = cachedAnnouncements[index];
             document.getElementById('modalTitle').textContent = '編輯公告';
             document.getElementById('editId').value = item.announcementId;
             document.getElementById('title').value = item.title;

@@ -16,13 +16,13 @@ public class MemberWebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(memberAuthInterceptor)
-                .addPathPatterns("/api/admin/**", "/api/member/**") // 攔截所有後端 API
+                .addPathPatterns("/api/admins/**", "/api/members/**") // 攔截所有後端 API
                 .excludePathPatterns(
-                    "/api/admin/login",
-                    "/api/admin/logout",
-                    "/api/member/login", 
-                    "/api/member/register",
-                    "/api/member/logout",
+                    "/api/admins/login",
+                    "/api/admins/logout",
+                    "/api/members/login", 
+                    "/api/members/register",
+                    "/api/members/logout",
                     "/css/**", "/js/**", "/images/**", "/lib/**" // 放行靜態資源
                 );
     }

@@ -38,7 +38,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>ID</th>
-                                <th>會員ID</th>
+                                <th>會員</th>
                                 <th>總金額</th>
                                 <th>狀態</th>
                                 <th>付款方式</th>
@@ -135,6 +135,9 @@
             loadData();
         });
 
+        // 用於暫存訂單資料（避免 JSON.stringify 巢狀物件導致的 HTML 解析問題）
+        let cachedOrders = [];
+
         // ============================================================
         // 【READ】載入所有訂單
         // ============================================================
@@ -150,6 +153,7 @@
             try {
                 const response = await fetch(API_URL);     // GET /api/orders
                 const orders = await response.json();
+                cachedOrders = orders; // 暫存供編輯用
 
                 if (orders.length === 0) {
                     tbody.innerHTML = `
@@ -160,15 +164,21 @@
                 }
 
                 tbody.innerHTML = '';
-                orders.forEach(order => {
+                orders.forEach((order, index) => {
                     const orderDate = order.orderDate
                         ? new Date(order.orderDate).toLocaleString('zh-TW')
                         : '-';
 
+                    // 會員顯示（從 @ManyToOne 關聯物件取得）
+                    let memberInfo = '-';
+                    if (order.member) {
+                        memberInfo = `${order.member.fullName || order.member.username} <small class="text-muted">(ID: ${order.member.memberId})</small>`;
+                    }
+
                     tbody.innerHTML += `
                         <tr>
                             <td>${order.orderId}</td>
-                            <td>${order.member ? order.member.memberId : '-'}</td>
+                            <td>${memberInfo}</td>
                             <td><strong>$${(order.totalAmount || 0).toLocaleString()}</strong></td>
                             <td>${getStatusBadge(order.status)}</td>
                             <td>${order.paymentType || '<span class="text-muted">-</span>'}</td>
@@ -176,7 +186,7 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-primary" title="編輯"
-                                            onclick='openEditModal(${JSON.stringify(order)})'>
+                                            onclick="openEditModal(${index})">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="刪除"
@@ -254,9 +264,10 @@
         }
 
         // ============================================================
-        // 【UPDATE】打開編輯 Modal（帶入舊資料）
+        // 【UPDATE】打開編輯 Modal（從暫存陣列取得資料）
         // ============================================================
-        function openEditModal(order) {
+        function openEditModal(index) {
+            const order = cachedOrders[index];
             document.getElementById('modalTitle').textContent = '編輯訂單';
             document.getElementById('editId').value = order.orderId;
             document.getElementById('memberId').value = order.member ? order.member.memberId : '';

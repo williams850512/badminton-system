@@ -111,7 +111,7 @@
             password: document.getElementById('password').value
         };
 
-        fetch('/api/member/login', {
+        fetch('/api/members/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(loginData)
