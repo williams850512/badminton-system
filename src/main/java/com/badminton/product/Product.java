@@ -1,13 +1,16 @@
 package com.badminton.product;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -47,9 +50,16 @@ public class Product {
     @Column(name = "image_url")
     private String imageUrl;
 
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private ProductStatus status = ProductStatus.ACTIVE;
 
     @Column(name = "created_at", updatable = false)
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
+    
+ // 在建構時自動填入當前時間
+ 	@PrePersist    // ← 在 save() 之前自動執行
+ 	protected void onCreate() {
+ 	    this.createdAt = LocalDateTime.now();
+ 	}
 }
