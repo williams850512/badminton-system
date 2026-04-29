@@ -47,4 +47,5 @@ build/
 
 ### Application ###
 application-local.yml
+application-mysql.yml
 uploads/
