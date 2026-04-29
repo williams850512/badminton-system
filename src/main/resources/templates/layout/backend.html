@@ -96,10 +96,7 @@
             <i class="bi bi-box-seam"></i> 商品管理
         </a>
         <a class="nav-link" th:href="@{/pickup-games}" data-page="pickup-games">
-            <i class="bi bi-people-fill"></i> 揪團打球
-        </a>
-        <a class="nav-link" th:href="@{/pickup-games/signups}" data-page="pickup-games/signups">
-            <i class="bi bi-person-check"></i> 揪團報名
+            <i class="bi bi-people-fill"></i> 揪團管理
         </a>
         <a class="nav-link" th:href="@{/announcements}" data-page="announcements">
             <i class="bi bi-megaphone"></i> 公告管理
@@ -121,11 +118,23 @@
     <script>
         (function() {
             const currentPath = window.location.pathname;
-            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-                if (currentPath.startsWith(link.getAttribute('href'))) {
-                    link.classList.add('active');
+            const links = document.querySelectorAll('.sidebar .nav-link');
+
+            // 找出「最長匹配」的那個連結（越精確越優先）
+            let bestMatch = null;
+            let bestLength = 0;
+
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (currentPath.startsWith(href) && href.length > bestLength) {
+                    bestMatch = link;
+                    bestLength = href.length;
                 }
             });
+
+            if (bestMatch) {
+                bestMatch.classList.add('active');
+            }
         })();
     </script>
 </div>

@@ -21,12 +21,24 @@
         <!-- ===== 主內容區 ===== -->
         <main class="main-content">
 
-            <!-- 頁面標題 + 新增按鈕 -->
+            <!-- 頁面標題 + 搜尋 + 新增按鈕 -->
             <div class="page-header">
                 <h2><i class="bi bi-calendar-check"></i> 預約管理</h2>
-                <button class="btn btn-primary" onclick="openCreateModal()">
-                    <i class="bi bi-plus-lg"></i> 新增預約
-                </button>
+                <div class="d-flex gap-2">
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" id="searchKeyword"
+                               placeholder="搜尋場館、球場、會員...">
+                        <button class="btn btn-outline-secondary" onclick="searchBookings()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="clearSearch()" title="清除搜尋">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="bi bi-plus-lg"></i> 新增預約
+                    </button>
+                </div>
             </div>
 
             <!-- 預約資料表格 -->
@@ -93,22 +105,28 @@
                         </div>
 
                         <div class="row">
-                            <!-- 會員 ID -->
+                            <!-- 會員搜尋 -->
                             <div class="col-md-4 mb-3">
-                                <label for="memberId" class="form-label">會員 ID</label>
-                                <input type="number" class="form-control" id="memberId"
-                                       placeholder="例：1">
+                                <label for="memberSearch" class="form-label">會員</label>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control" id="memberSearch"
+                                           placeholder="輸入姓名或手機號碼搜尋" autocomplete="off">
+                                    <input type="hidden" id="memberId">
+                                    <div id="memberResults" class="list-group position-absolute w-100 shadow"
+                                         style="z-index: 1050; max-height: 200px; overflow-y: auto; display: none;"></div>
+                                </div>
+                                <small id="selectedMember" class="text-success" style="display:none;"></small>
                             </div>
                             <!-- 預約日期 -->
                             <div class="col-md-4 mb-3">
                                 <label for="bookingDate" class="form-label">預約日期 <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control" id="bookingDate" required>
                             </div>
-                            <!-- 金額 -->
+                            <!-- 金額（自動計算：每小時 300 元） -->
                             <div class="col-md-4 mb-3">
-                                <label for="totalAmount" class="form-label">金額</label>
+                                <label for="totalAmount" class="form-label">金額 <small class="text-muted">(自動計算)</small></label>
                                 <input type="number" class="form-control" id="totalAmount"
-                                       placeholder="例：600" min="0">
+                                       readonly style="background-color: #e9ecef;">
                             </div>
                         </div>
 
@@ -166,9 +184,10 @@
         // ============================================================
         // API 路徑
         // ============================================================
-        const API_URL       = '/api/bookings';
-        const VENUE_API_URL = '/api/venues';
-        const COURT_API_URL = '/api/courts';
+        const API_URL        = '/api/bookings';
+        const VENUE_API_URL  = '/api/venues';
+        const COURT_API_URL  = '/api/courts';
+        const MEMBER_API_URL = '/api/members';
 
         // 快取所有球場（用於場館連動篩選）
         let allCourts = [];
@@ -188,16 +207,33 @@
             // 開始時間連動：選擇開始時間後，自動篩選結束時間
             document.getElementById('startTime').addEventListener('change', filterEndTimes);
 
+            // 結束時間連動：選擇結束時間後，自動計算金額
+            document.getElementById('endTime').addEventListener('change', calculateAmount);
+
             // 預約日期最小值：今天
             document.getElementById('bookingDate').min = new Date().toISOString().split('T')[0];
+
+            // 搜尋框按 Enter 觸發搜尋
+            document.getElementById('searchKeyword').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') searchBookings();
+            });
+
+            // 會員搜尋框：輸入時即時搜尋
+            document.getElementById('memberSearch').addEventListener('input', debounce(searchMembers, 300));
+            // 點擊其他地方關閉下拉
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#memberSearch') && !e.target.closest('#memberResults')) {
+                    document.getElementById('memberResults').style.display = 'none';
+                }
+            });
 
             loadData();
         });
 
         // ============================================================
-        // 【READ】載入所有預約
+        // 【READ】載入預約（支援模糊搜尋）
         // ============================================================
-        async function loadData() {
+        async function loadData(keyword) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = `
                 <tr class="loading-row">
@@ -207,7 +243,11 @@
                 </tr>`;
 
             try {
-                const response = await fetch(API_URL);     // GET /api/bookings
+                // 有關鍵字 → 呼叫搜尋 API，沒有 → 呼叫全部
+                const url = keyword
+                    ? `${API_URL}/search?keyword=${encodeURIComponent(keyword)}`
+                    : API_URL;
+                const response = await fetch(url);
                 const bookings = await response.json();
 
                 if (bookings.length === 0) {
@@ -372,6 +412,24 @@
                 const val = h.toString().padStart(2, '0') + ':00';
                 endSelect.innerHTML += `<option value="${val}">${val}</option>`;
             }
+
+            // 開始時間變了，結束時間被重置，金額也要清空
+            document.getElementById('totalAmount').value = '';
+        }
+
+        // ============================================================
+        // 自動計算金額（每小時 300 元）
+        // ============================================================
+        function calculateAmount() {
+            const startTime = document.getElementById('startTime').value;
+            const endTime   = document.getElementById('endTime').value;
+
+            if (startTime && endTime) {
+                const hours = parseInt(endTime) - parseInt(startTime);
+                document.getElementById('totalAmount').value = hours * 300;
+            } else {
+                document.getElementById('totalAmount').value = '';
+            }
         }
 
         // ============================================================
@@ -381,6 +439,10 @@
             document.getElementById('modalTitle').textContent = '新增預約';
             document.getElementById('bookingForm').reset();
             document.getElementById('editId').value = '';
+            document.getElementById('memberId').value = '';
+            document.getElementById('memberSearch').value = '';
+            document.getElementById('memberResults').style.display = 'none';
+            document.getElementById('selectedMember').style.display = 'none';
             await loadVenueAndCourtOptions();
             bookingModal.show();
         }
@@ -451,6 +513,73 @@
             } catch (error) {
                 alert('請求失敗：' + error.message);
             }
+        }
+        // ============================================================
+        // 【SEARCH】模糊搜尋
+        // ============================================================
+        function searchBookings() {
+            const keyword = document.getElementById('searchKeyword').value.trim();
+            loadData(keyword || null);
+        }
+
+        // 清除搜尋
+        function clearSearch() {
+            document.getElementById('searchKeyword').value = '';
+            loadData();
+        }
+
+        // ============================================================
+        // 【會員搜尋】輸入姓名或手機號碼搜尋會員
+        // ============================================================
+        async function searchMembers() {
+            const keyword = document.getElementById('memberSearch').value.trim();
+            const resultsDiv = document.getElementById('memberResults');
+
+            if (keyword.length < 1) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${MEMBER_API_URL}/search?keyword=${encodeURIComponent(keyword)}`);
+                const members = await res.json();
+
+                if (members.length === 0) {
+                    resultsDiv.innerHTML = '<div class="list-group-item text-muted">找不到符合的會員</div>';
+                } else {
+                    resultsDiv.innerHTML = members.map(m => `
+                        <button type="button" class="list-group-item list-group-item-action"
+                                onclick="selectMember(${m.memberId}, '${m.fullName}', '${m.phone || ''}')">
+                            <strong>${m.fullName}</strong>
+                            <small class="text-muted ms-2">${m.phone || '無手機'}</small>
+                            <small class="text-muted ms-2">ID: ${m.memberId}</small>
+                        </button>
+                    `).join('');
+                }
+                resultsDiv.style.display = 'block';
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="list-group-item text-danger">搜尋失敗</div>';
+                resultsDiv.style.display = 'block';
+            }
+        }
+
+        // 選擇會員
+        function selectMember(id, name, phone) {
+            document.getElementById('memberId').value = id;
+            document.getElementById('memberSearch').value = name;
+            document.getElementById('memberResults').style.display = 'none';
+            const info = document.getElementById('selectedMember');
+            info.textContent = `✓ 已選擇：${name}${phone ? ' (' + phone + ')' : ''} [ID: ${id}]`;
+            info.style.display = 'block';
+        }
+
+        // 防抖動工具
+        function debounce(fn, delay) {
+            let timer;
+            return function(...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
         }
     </script>
 

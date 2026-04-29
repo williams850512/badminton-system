@@ -18,6 +18,9 @@ public class PickupGameRestController {
 
 	@Autowired
 	private PickupGamesService pickupGamesService;
+	
+	@Autowired
+	private PickupGameSignupsService signupsService;
 
 	// GET /api/pickup-games
 	@GetMapping
@@ -49,4 +52,10 @@ public class PickupGameRestController {
 	public void delete(@PathVariable Integer id) {
 		pickupGamesService.deleteById(id);
 	}
+	
+	// GET /api/pickup-games/3/signups → 查詢第 3 場揪團的所有報名
+	@GetMapping("/{gameId}/signups")
+	public List<PickupGameSignups> findSignupsByGameId(@PathVariable Integer gameId){
+		return signupsService.findByGameId(gameId);
+		}
 }

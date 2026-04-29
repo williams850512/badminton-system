@@ -38,6 +38,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>ID</th>
+                                <th>商品圖片</th>
                                 <th>商品名稱</th>
                                 <th>分類</th>
                                 <th>品牌</th>
@@ -49,7 +50,7 @@
                         </thead>
                         <tbody id="tableBody">
                             <tr class="loading-row">
-                                <td colspan="8">
+                                <td colspan="9">
                                     <div class="spinner-border spinner-border-sm text-primary"></div>
                                     載入中...
                                 </td>
@@ -85,8 +86,14 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="category" class="form-label">分類</label>
-                                <input type="text" class="form-control" id="category"
-                                       placeholder="例：球拍、球鞋">
+                                <select class="form-select" id="category">
+                                    <option value="RACKET">球拍</option>
+                                    <option value="SHUTTLECOCK">羽球</option>
+                                    <option value="GRIP">握把布</option>
+                                    <option value="STRING">球線</option>
+                                    <option value="ACCESSORY">配件</option>
+                                    <option value="OTHER">其他</option>
+                                </select>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="brand" class="form-label">品牌</label>
@@ -110,6 +117,15 @@
                             <label for="description" class="form-label">描述</label>
                             <textarea class="form-control" id="description" rows="2"
                                       placeholder="選填商品描述"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="imageFile" class="form-label">商品圖片</label>
+                            <input type="file" class="form-control" id="imageFile" accept="image/*">
+                            <input type="hidden" id="imageUrl">
+                            <div id="imagePreview" class="mt-2" style="display:none;">
+                                <img id="previewImg" width="120" class="img-thumbnail">
+                                <small class="text-muted d-block">目前圖片</small>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="status" class="form-label">狀態</label>
@@ -159,7 +175,7 @@
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = `
                 <tr class="loading-row">
-                    <td colspan="8">
+                    <td colspan="9">
                         <div class="spinner-border spinner-border-sm text-primary"></div> 載入中...
                     </td>
                 </tr>`;
@@ -170,7 +186,7 @@
 
                 if (products.length === 0) {
                     tbody.innerHTML = `
-                        <tr><td colspan="8" class="text-center text-muted py-4">
+                        <tr><td colspan="9" class="text-center text-muted py-4">
                             目前沒有商品資料，請點擊「新增商品」按鈕
                         </td></tr>`;
                     return;
@@ -181,8 +197,13 @@
                     tbody.innerHTML += `
                         <tr>
                             <td>${product.productId}</td>
+                            <td>
+                                <img src="${product.imageUrl ? product.imageUrl : '/images/products/default.png'}"
+                                     width="80" class="img-thumbnail"
+                                     onerror="this.onerror=null; this.src='/images/products/default.png';">
+                            </td>
                             <td><strong>${product.productName || ''}</strong></td>
-                            <td>${product.category || '<span class="text-muted">-</span>'}</td>
+                            <td>${getCategoryLabel(product.category)}</td>
                             <td>${product.brand || '<span class="text-muted">-</span>'}</td>
                             <td>$${Number(product.price || 0).toLocaleString()}</td>
                             <td>${product.stockQty != null ? product.stockQty : '-'}</td>
@@ -224,11 +245,22 @@
 
             } catch (error) {
                 tbody.innerHTML = `
-                    <tr><td colspan="8" class="text-center text-danger py-4">
+                    <tr><td colspan="9" class="text-center text-danger py-4">
                         <i class="bi bi-exclamation-triangle"></i> 載入失敗：${error.message}
                         <br><button class="btn btn-sm btn-outline-primary mt-2" onclick="loadData()">重試</button>
                     </td></tr>`;
             }
+        }
+
+        // ============================================================
+        // 分類中文對應
+        // ============================================================
+        function getCategoryLabel(category) {
+            const map = {
+                'RACKET': '球拍', 'SHUTTLECOCK': '羽球', 'GRIP': '握把布',
+                'STRING': '球線', 'ACCESSORY': '配件', 'OTHER': '其他'
+            };
+            return map[category] || category || '<span class="text-muted">-</span>';
         }
 
         // ============================================================
@@ -250,6 +282,8 @@
             document.getElementById('modalTitle').textContent = '新增商品';
             document.getElementById('productForm').reset();
             document.getElementById('editId').value = '';
+            document.getElementById('imageUrl').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
             productModal.show();
         }
 
@@ -266,6 +300,17 @@
             document.getElementById('stockQty').value = product.stockQty || '';
             document.getElementById('description').value = product.description || '';
             document.getElementById('status').value = product.status || 'ACTIVE';
+            document.getElementById('imageUrl').value = product.imageUrl || '';
+            document.getElementById('imageFile').value = '';
+
+            // 顯示目前圖片預覽
+            if (product.imageUrl) {
+                document.getElementById('previewImg').src = product.imageUrl;
+                document.getElementById('imagePreview').style.display = 'block';
+            } else {
+                document.getElementById('imagePreview').style.display = 'none';
+            }
+
             productModal.show();
         }
 
@@ -281,27 +326,53 @@
                 return;
             }
 
+            // ===== 步驟 1：如果有選擇圖片，先上傳 =====
+            let imageUrl = document.getElementById('imageUrl').value;
+            const imageFile = document.getElementById('imageFile').files[0];
+
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+
+                try {
+                    const uploadRes = await fetch(`${API_URL}/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (uploadRes.ok) {
+                        const result = await uploadRes.json();
+                        imageUrl = result.imageUrl;
+                    } else {
+                        alert('圖片上傳失敗！');
+                        return;
+                    }
+                } catch (error) {
+                    alert('圖片上傳失敗：' + error.message);
+                    return;
+                }
+            }
+
+            // ===== 步驟 2：儲存商品資料 =====
             const data = {
                 productName: document.getElementById('productName').value.trim(),
-                category:    document.getElementById('category').value.trim() || null,
+                category:    document.getElementById('category').value || null,
                 brand:       document.getElementById('brand').value.trim() || null,
                 price:       parseFloat(document.getElementById('price').value) || 0,
                 stockQty:    parseInt(document.getElementById('stockQty').value) || 0,
                 description: document.getElementById('description').value.trim() || null,
-                status:      document.getElementById('status').value
+                status:      document.getElementById('status').value,
+                imageUrl:    imageUrl || null
             };
 
             try {
                 let response;
                 if (id) {
-                    // 有 ID → PUT 更新
                     response = await fetch(`${API_URL}/${id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
                     });
                 } else {
-                    // 沒 ID → POST 新增
                     response = await fetch(API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

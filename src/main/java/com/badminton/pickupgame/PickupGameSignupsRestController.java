@@ -49,4 +49,6 @@ public class PickupGameSignupsRestController {
 	public void delete(@PathVariable Integer id) {
 		signupsService.deleteById(id);
 	}
+	
+	
 }

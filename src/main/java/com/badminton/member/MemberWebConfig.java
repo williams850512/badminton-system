@@ -23,6 +23,7 @@ public class MemberWebConfig implements WebMvcConfigurer {
                     "/api/members/login", 
                     "/api/members/register",
                     "/api/members/logout",
+                    "/api/members/search",  // 後台搜尋會員功能需要
                     "/css/**", "/js/**", "/images/**", "/lib/**" // 放行靜態資源
                 );
     }

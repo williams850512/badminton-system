@@ -32,8 +32,9 @@ public class Product {
     @Column(name = "product_name")
     private String productName;
 
-    @Column(name = "category")
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category", length = 20)
+    private ProductCategory category;
 
     @Column(name = "brand")
     private String brand;

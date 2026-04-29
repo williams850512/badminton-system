@@ -29,6 +29,11 @@ public class PickupGameSignupsService {
 				.orElseThrow(() -> new RuntimeException("找不到報名紀錄 ID: " + id));
 	}
 
+	/** 根據揪團 ID 查詢該場所有報名紀錄 */
+	public List<PickupGameSignups> findByGameId(Integer gameId){
+		return signupsRepo.findByGame_GameId(gameId);
+	}
+	
 	// ===== 新增 / 更新 =====
 
 	/** 新增或更新報名紀錄（有 ID 就 UPDATE，沒有就 INSERT），必須有驗證流程 */
@@ -77,4 +82,6 @@ public class PickupGameSignupsService {
 	public void deleteById(Integer id) {
 		signupsRepo.deleteById(id);
 	}
+	
+	
 }

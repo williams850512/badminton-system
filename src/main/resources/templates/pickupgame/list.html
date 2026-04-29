@@ -131,6 +131,8 @@
     <!-- ===== 本頁 JavaScript ===== -->
     <script>
         const API_URL = '/api/pickup-games';
+        const MEMBER_API_URL = '/api/members';
+        const SIGNUPS_API_URL = '/api/pickup-game-signups';
         let gameModal;
         
         // 用於暫存揪團資料（避免 JSON.stringify 巢狀物件問題）
@@ -217,12 +219,16 @@
                             <td>${getStatusBadge(game.status)}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-info" title="查看報名"
+                                            onclick="toggleSignups(${game.gameId}, this)">
+                                        <i class="bi bi-caret-right-fill"></i> 查看報名
+                                    </button>
                                     <button class="btn btn-outline-primary" title="編輯" onclick="openEditModal(${index})">
-                                        <i class="bi bi-pencil"></i> 編輯
+                                        <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="刪除"
                                             onclick="deleteGame(${game.gameId})">
-                                        <i class="bi bi-trash"></i> 刪除
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
                             </td>
@@ -355,6 +361,215 @@
             } catch (error) {
                 alert('請求失敗：' + error.message);
             }
+        }
+
+        // ============================================================
+        // 【展開報名名單】
+        // ============================================================
+        async function toggleSignups(gameId, btn) {
+            // 檢查是否已展開，是的話收合
+            const existingRow = document.getElementById(`signups-row-${gameId}`);
+            if (existingRow) {
+                existingRow.remove();
+                btn.innerHTML = '<i class="bi bi-caret-right-fill"></i> 查看報名';
+                btn.classList.remove('active');
+                return;
+            }
+
+            // 切換按鈕圖示 ▶ → ▼
+            btn.innerHTML = '<i class="bi bi-caret-down-fill"></i> 收合報名';
+            btn.classList.add('active');
+
+            // 建立子列
+            const parentRow = btn.closest('tr');
+            const subRow = document.createElement('tr');
+            subRow.id = `signups-row-${gameId}`;
+            subRow.innerHTML = `
+                <td colspan="8" style="background-color: #f8f9fa; padding: 16px 24px;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <strong><i class="bi bi-people-fill"></i> 報名名單</strong>
+                        <div class="spinner-border spinner-border-sm" id="signup-loading-${gameId}"></div>
+                    </div>
+                    <div id="signup-content-${gameId}"></div>
+                    <hr class="my-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="position-relative" style="width: 250px;">
+                            <input type="text" class="form-control form-control-sm" id="add-member-search-${gameId}"
+                                   placeholder="輸入姓名或手機搜尋會員" autocomplete="off">
+                            <input type="hidden" id="add-member-id-${gameId}">
+                            <div id="add-member-results-${gameId}" class="list-group position-absolute w-100 shadow"
+                                 style="z-index: 1050; max-height: 150px; overflow-y: auto; display: none;"></div>
+                        </div>
+                        <span id="add-member-name-${gameId}" class="text-success" style="font-size: 0.85em;"></span>
+                        <button class="btn btn-sm btn-success" onclick="addSignup(${gameId})">
+                            <i class="bi bi-person-plus"></i> 新增報名
+                        </button>
+                    </div>
+                </td>`;
+            parentRow.after(subRow);
+
+            // 綁定會員搜尋事件
+            const searchInput = document.getElementById(`add-member-search-${gameId}`);
+            searchInput.addEventListener('input', debounce(() => searchMemberForSignup(gameId), 300));
+            document.addEventListener('click', function handler(e) {
+                const results = document.getElementById(`add-member-results-${gameId}`);
+                if (results && !e.target.closest(`#add-member-search-${gameId}`) && !e.target.closest(`#add-member-results-${gameId}`)) {
+                    results.style.display = 'none';
+                }
+            });
+
+            // 載入報名資料
+            await loadSignups(gameId);
+        }
+
+        // 載入某場揪團的報名名單
+        async function loadSignups(gameId) {
+            const contentDiv = document.getElementById(`signup-content-${gameId}`);
+            const loadingEl = document.getElementById(`signup-loading-${gameId}`);
+            if (loadingEl) loadingEl.style.display = 'block';
+
+            try {
+                const res = await fetch(`${API_URL}/${gameId}/signups`);
+                const signups = await res.json();
+                if (loadingEl) loadingEl.style.display = 'none';
+
+                if (signups.length === 0) {
+                    contentDiv.innerHTML = '<span class="text-muted">目前沒有人報名</span>';
+                    return;
+                }
+
+                let html = '<table class="table table-sm table-bordered mb-0" style="background: white;">';
+                html += '<thead><tr><th>會員</th><th>狀態</th><th>報名時間</th><th style="width:80px">操作</th></tr></thead><tbody>';
+                signups.forEach(s => {
+                    const name = s.member ? (s.member.fullName || s.member.username) : '未知';
+                    const time = s.signedUpAt ? s.signedUpAt.replace('T', ' ').substring(0, 16) : '-';
+                    html += `<tr>
+                        <td>${name}</td>
+                        <td>${getSignupStatusBadge(s.status)}</td>
+                        <td><small class="text-muted">${time}</small></td>
+                        <td>
+                            ${s.status === 'JOINED' ? `<button class="btn btn-outline-danger btn-sm" onclick="removeSignup(${s.signupId}, ${gameId})" title="移除"><i class="bi bi-person-dash"></i></button>` : ''}
+                        </td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                contentDiv.innerHTML = html;
+
+            } catch (error) {
+                contentDiv.innerHTML = `<span class="text-danger">載入失敗：${error.message}</span>`;
+                if (loadingEl) loadingEl.style.display = 'none';
+            }
+        }
+
+        // 搜尋會員（用於新增報名）
+        async function searchMemberForSignup(gameId) {
+            const keyword = document.getElementById(`add-member-search-${gameId}`).value.trim();
+            const resultsDiv = document.getElementById(`add-member-results-${gameId}`);
+
+            if (keyword.length < 1) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${MEMBER_API_URL}/search?keyword=${encodeURIComponent(keyword)}`);
+                const members = await res.json();
+
+                if (members.length === 0) {
+                    resultsDiv.innerHTML = '<div class="list-group-item text-muted small">找不到符合的會員</div>';
+                } else {
+                    resultsDiv.innerHTML = members.map(m => `
+                        <button type="button" class="list-group-item list-group-item-action py-1"
+                                onclick="selectMemberForSignup(${gameId}, ${m.memberId}, '${m.fullName}')">
+                            <strong>${m.fullName}</strong>
+                            <small class="text-muted ms-1">${m.phone || ''}</small>
+                        </button>
+                    `).join('');
+                }
+                resultsDiv.style.display = 'block';
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="list-group-item text-danger small">搜尋失敗</div>';
+                resultsDiv.style.display = 'block';
+            }
+        }
+
+        // 選擇會員
+        function selectMemberForSignup(gameId, memberId, name) {
+            document.getElementById(`add-member-id-${gameId}`).value = memberId;
+            document.getElementById(`add-member-search-${gameId}`).value = name;
+            document.getElementById(`add-member-name-${gameId}`).textContent = `✓ ${name} (ID: ${memberId})`;
+            document.getElementById(`add-member-results-${gameId}`).style.display = 'none';
+        }
+
+        // 新增報名
+        async function addSignup(gameId) {
+            const memberId = document.getElementById(`add-member-id-${gameId}`).value;
+            if (!memberId) {
+                alert('請先搜尋並選擇一位會員！');
+                return;
+            }
+
+            try {
+                const res = await fetch(SIGNUPS_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        game: { gameId: gameId },
+                        member: { memberId: parseInt(memberId) }
+                    })
+                });
+
+                if (res.ok) {
+                    // 清空輸入
+                    document.getElementById(`add-member-search-${gameId}`).value = '';
+                    document.getElementById(`add-member-id-${gameId}`).value = '';
+                    document.getElementById(`add-member-name-${gameId}`).textContent = '';
+                    // 重新載入報名名單
+                    await loadSignups(gameId);
+                    // 重新載入揪團列表（更新人數）
+                    loadData();
+                } else {
+                    const err = await res.text();
+                    alert('報名失敗：' + err);
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+
+        // 移除報名
+        async function removeSignup(signupId, gameId) {
+            if (!confirm('確定要移除此報名嗎？')) return;
+            try {
+                const res = await fetch(`${SIGNUPS_API_URL}/${signupId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    await loadSignups(gameId);
+                    loadData();
+                } else {
+                    alert('移除失敗');
+                }
+            } catch (error) {
+                alert('請求失敗：' + error.message);
+            }
+        }
+
+        // 防抖動
+        function debounce(fn, delay) {
+            let timer;
+            return function(...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        function getSignupStatusBadge(status) {
+            const map = {
+                'JOINED':  '<span class="badge bg-success">已加入</span>',
+                'QUITTED': '<span class="badge bg-secondary">已退出</span>',
+                'NO_SHOW': '<span class="badge bg-warning text-dark">未到場</span>',
+                'KICKED':  '<span class="badge bg-danger">被踢出</span>'
+            };
+            return map[status] || `<span class="badge bg-secondary">${status}</span>`;
         }
     </script>
 </body>

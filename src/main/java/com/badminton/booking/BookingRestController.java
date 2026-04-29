@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -42,6 +43,13 @@ public class BookingRestController {
 	@PatchMapping("/{id}/status")
 	public Booking updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
 		return bookingService.updateStatus(id, BookingStatus.valueOf(body.get("status")));
+	}
+	
+	// GET /api/bookings/search?keyword=總館
+	@GetMapping("/search")
+	public List<Booking> search(@RequestParam(required = false) String keyword){
+		return bookingService.searchByKeyword(keyword);
+		
 	}
 
 }

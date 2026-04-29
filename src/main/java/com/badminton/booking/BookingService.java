@@ -67,5 +67,12 @@ public class BookingService {
 		// 3. 存回資料庫（Hibernate 會自動產生 UPDATE SQL）
 		return bookingRepo.save(booking);
 	}
+	
+	public List<Booking> searchByKeyword(String keyword){
+		if(keyword == null || keyword.trim().isEmpty()) {
+			return bookingRepo.findAll();
+		}
+		return bookingRepo.searchByKeyword(keyword);
+	}
 
 }
