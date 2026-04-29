@@ -88,7 +88,7 @@ public class OrderService {
 
     // 更新訂單 (對應原版 V2 的 OrderDAO.updateOrder 方法)
     // 只更新 status, paymentType, note 三個欄位
-    public void updateOrder(Integer id, OrderStatus status, String paymentType, String note) {
+    public void updateOrder(Integer id, OrderStatus status, PaymentType paymentType, String note) {
         Order order = orderRepository.findById(id).orElse(null);
         if (order != null) {
             order.setStatus(status);

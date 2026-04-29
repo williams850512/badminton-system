@@ -33,8 +33,9 @@ public class Order {
     @Column(name = "status", nullable = false, length = 20)
     private OrderStatus status = OrderStatus.UNPAID;
 
-    @Column(name = "payment_type", length = 50)
-    private String paymentType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_type", length = 20)
+    private PaymentType paymentType;
 
     @Column(name = "note")
     private String note;

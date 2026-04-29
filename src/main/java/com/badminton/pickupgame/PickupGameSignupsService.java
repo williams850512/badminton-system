@@ -40,8 +40,8 @@ public class PickupGameSignupsService {
 		PickupGames game =  pickupGameRepo.findById(signupid)
 		.orElseThrow(()-> new RuntimeException("找不到揪團 ID: " + signupid));
 		
-	// ====== ② 檢查揪團狀態是否為 "open" ======
-	if(!"open".equals(game.getStatus())) {
+	// ====== ② 檢查揪團狀態是否為 OPEN ======
+	if(game.getStatus() != PickupGameStatus.OPEN) {
 		throw new RuntimeException("此揪團目前不開放報名" );
 		
 	}
@@ -59,9 +59,9 @@ public class PickupGameSignupsService {
 	// b. 揪團的 currentPlayers + 1
 	game.setCurrentPlayers(game.getCurrentPlayers()+ 1);
 	
-	// c. 如果人數已滿 (currentPlayers >= maxPlayers)，把 status 改成 "full"
+	// c. 如果人數已滿 (currentPlayers >= maxPlayers)，把 status 改成 FULL
 	if(game.getCurrentPlayers() >= game.getMaxPlayers()) {
-		game.setStatus("full");
+		game.setStatus(PickupGameStatus.FULL);
 	}
 	
 	// d. 存回揪團

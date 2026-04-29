@@ -1,0 +1,24 @@
+# ===========================================================
+# MySQL Configuration (Mac 組員使用)
+# ===========================================================
+# 啟動方式：
+#   方法一：在 IDE Run Configuration 加入 VM 參數
+#           -Dspring.profiles.active=mysql
+#   方法二：在 application.yml 加入
+#           spring.profiles.active: mysql
+# ===========================================================
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/BadmintonDB?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Taipei
+    username: root
+    password: your_mysql_password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true

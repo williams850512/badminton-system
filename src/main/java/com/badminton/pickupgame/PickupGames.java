@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -58,8 +60,9 @@ public class PickupGames {
 	@Column(name = "current_players", nullable = false)
 	private Integer currentPlayers = 1;
 
+	@Enumerated(EnumType.STRING)
 	@Column(name = "skill_level", nullable = false, length = 15)
-	private String skillLevel = "all";
+	private SkillLevel skillLevel = SkillLevel.ALL;
 
 	@Column(name = "fee_per_person", nullable = false)
 	private BigDecimal feePerPerson = BigDecimal.ZERO;
@@ -67,8 +70,9 @@ public class PickupGames {
 	@Column(name = "description", length = 300)
 	private String description;
 
+	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false, length = 10)
-	private String status = "open";
+	private PickupGameStatus status = PickupGameStatus.OPEN;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
