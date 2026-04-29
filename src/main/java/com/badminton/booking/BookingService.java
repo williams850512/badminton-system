@@ -28,7 +28,7 @@ public class BookingService {
 	// ===== 查詢 =====
 	
 	public List<Booking> findAll(){
-		return bookingRepo.findAll();	
+		return bookingRepo.findAllByOrderByBookingDateAscStartTimeAsc();	
 	}
 	
 	public Booking findById(Integer id) {
@@ -62,9 +62,13 @@ public class BookingService {
 		// 1. 先從資料庫撈出這筆 Booking
 		Booking booking = bookingRepo.findById(id)
 				.orElseThrow(()-> new RuntimeException("找不到預約 ID:" + id));
-		// 2. 只修改 status 欄位
+		// 2. 修改 status 欄位
 		booking.setStatus(newStatus);
-		// 3. 存回資料庫（Hibernate 會自動產生 UPDATE SQL）
+		// 3. 如果取消預約，金額歸零
+		if (newStatus == BookingStatus.CANCELLED) {
+			booking.setTotalAmount(java.math.BigDecimal.ZERO);
+		}
+		// 4. 存回資料庫（Hibernate 會自動產生 UPDATE SQL）
 		return bookingRepo.save(booking);
 	}
 	

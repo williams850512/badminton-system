@@ -23,12 +23,24 @@
         <!-- ===== 主內容區（只改這裡面！）===== -->
         <main class="main-content">
 
-            <!-- 頁面標題 + 新增按鈕 -->
+            <!-- 頁面標題 + 搜尋 + 新增按鈕 -->
             <div class="page-header">
                 <h2><i class="bi bi-receipt"></i> 訂單管理</h2>
-                <button class="btn btn-primary" onclick="openCreateModal()">
-                    <i class="bi bi-plus-lg"></i> 新增訂單
-                </button>
+                <div class="d-flex gap-2">
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" id="searchKeyword"
+                               placeholder="搜尋會員、付款方式...">
+                        <button class="btn btn-outline-secondary" onclick="searchData()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="clearSearch()" title="清除搜尋">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="bi bi-plus-lg"></i> 新增訂單
+                    </button>
+                </div>
             </div>
 
             <!-- 訂單資料表格 -->
@@ -132,6 +144,9 @@
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+            document.getElementById('searchKeyword').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') searchData();
+            });
             loadData();
         });
 
@@ -141,7 +156,7 @@
         // ============================================================
         // 【READ】載入所有訂單
         // ============================================================
-        async function loadData() {
+        async function loadData(keyword) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = `
                 <tr class="loading-row">
@@ -151,8 +166,23 @@
                 </tr>`;
 
             try {
-                const response = await fetch(API_URL);     // GET /api/orders
-                const orders = await response.json();
+                const response = await fetch(API_URL);
+                let orders = await response.json();
+
+                // 前端模糊篩選
+                if (keyword) {
+                    const kw = keyword.toLowerCase();
+                    orders = orders.filter(o => {
+                        const memberName = o.member ? (o.member.fullName || o.member.username || '') : '';
+                        const payment = o.paymentType || '';
+                        const status = o.status || '';
+                        const id = String(o.orderId);
+                        return memberName.toLowerCase().includes(kw)
+                            || payment.toLowerCase().includes(kw)
+                            || status.toLowerCase().includes(kw)
+                            || id.includes(kw);
+                    });
+                }
                 cachedOrders = orders; // 暫存供編輯用
 
                 if (orders.length === 0) {
@@ -374,6 +404,19 @@
             } catch (error) {
                 alert('請求失敗：' + error.message);
             }
+        }
+
+        // ============================================================
+        // 【SEARCH】模糊搜尋
+        // ============================================================
+        function searchData() {
+            const keyword = document.getElementById('searchKeyword').value.trim();
+            loadData(keyword || null);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchKeyword').value = '';
+            loadData();
         }
     </script>
 

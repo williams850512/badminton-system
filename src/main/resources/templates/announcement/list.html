@@ -25,12 +25,24 @@
         <!-- ===== 主內容區（只改這裡面！）===== -->
         <main class="main-content">
 
-            <!-- 頁面標題 + 新增按鈕 -->
+            <!-- 頁面標題 + 搜尋 + 新增按鈕 -->
             <div class="page-header">
                 <h2><i class="bi bi-megaphone"></i> 公告管理</h2>
-                <button class="btn btn-primary" onclick="openCreateModal()">
-                    <i class="bi bi-plus-lg"></i> 新增公告
-                </button>
+                <div class="d-flex gap-2">
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" id="searchKeyword"
+                               placeholder="搜尋標題、發布者、分類...">
+                        <button class="btn btn-outline-secondary" onclick="searchData()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="clearSearch()" title="清除搜尋">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="bi bi-plus-lg"></i> 新增公告
+                    </button>
+                </div>
             </div>
 
             <!-- 公告資料表格 -->
@@ -146,6 +158,9 @@
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
+            document.getElementById('searchKeyword').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') searchData();
+            });
             loadData();
         });
 
@@ -155,7 +170,7 @@
         // ============================================================
         // 【READ】載入所有公告
         // ============================================================
-        async function loadData() {
+        async function loadData(keyword) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = `
                 <tr class="loading-row">
@@ -165,8 +180,21 @@
                 </tr>`;
 
             try {
-                const response = await fetch(API_URL);     // GET /api/announcements
-                const announcements = await response.json();
+                const response = await fetch(API_URL);
+                let announcements = await response.json();
+
+                // 前端模糊篩選
+                if (keyword) {
+                    const kw = keyword.toLowerCase();
+                    announcements = announcements.filter(a => {
+                        const title = (a.title || '').toLowerCase();
+                        const admin = a.admin ? (a.admin.fullName || a.admin.username || '').toLowerCase() : '';
+                        const cat = (a.category || '').toLowerCase();
+                        const status = (a.status || '').toLowerCase();
+                        return title.includes(kw) || admin.includes(kw)
+                            || cat.includes(kw) || status.includes(kw);
+                    });
+                }
                 cachedAnnouncements = announcements; // 暫存供編輯用
 
                 if (announcements.length === 0) {
@@ -371,6 +399,19 @@
             } catch (error) {
                 alert('請求失敗：' + error.message);
             }
+        }
+
+        // ============================================================
+        // 【SEARCH】模糊搜尋
+        // ============================================================
+        function searchData() {
+            const keyword = document.getElementById('searchKeyword').value.trim();
+            loadData(keyword || null);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchKeyword').value = '';
+            loadData();
         }
     </script>
 

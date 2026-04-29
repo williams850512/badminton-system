@@ -23,12 +23,24 @@
         <!-- ===== 主內容區 ===== -->
         <main class="main-content">
 
-            <!-- 頁面標題 + 新增按鈕 -->
+            <!-- 頁面標題 + 搜尋 + 新增按鈕 -->
             <div class="page-header">
                 <h2><i class="bi bi-box-seam"></i> 商品管理</h2>
-                <button class="btn btn-primary" onclick="openCreateModal()">
-                    <i class="bi bi-plus-lg"></i> 新增商品
-                </button>
+                <div class="d-flex gap-2">
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" id="searchKeyword"
+                               placeholder="搜尋商品名稱、品牌...">
+                        <button class="btn btn-outline-secondary" onclick="searchData()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="clearSearch()" title="清除搜尋">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="bi bi-plus-lg"></i> 新增商品
+                    </button>
+                </div>
             </div>
 
             <!-- 商品資料表格 -->
@@ -165,13 +177,16 @@
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             productModal = new bootstrap.Modal(document.getElementById('productModal'));
+            document.getElementById('searchKeyword').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') searchData();
+            });
             loadData();
         });
 
         // ============================================================
         // 【READ】載入所有商品
         // ============================================================
-        async function loadData() {
+        async function loadData(keyword) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = `
                 <tr class="loading-row">
@@ -181,8 +196,21 @@
                 </tr>`;
 
             try {
-                const response = await fetch(API_URL);     // GET /api/products
-                const products = await response.json();
+                const response = await fetch(API_URL);
+                let products = await response.json();
+
+                // 前端模糊篩選
+                if (keyword) {
+                    const kw = keyword.toLowerCase();
+                    products = products.filter(p => {
+                        const name = (p.productName || '').toLowerCase();
+                        const brand = (p.brand || '').toLowerCase();
+                        const cat = getCategoryLabel(p.category).toLowerCase();
+                        const status = (p.status || '').toLowerCase();
+                        return name.includes(kw) || brand.includes(kw)
+                            || cat.includes(kw) || status.includes(kw);
+                    });
+                }
 
                 if (products.length === 0) {
                     tbody.innerHTML = `
@@ -434,6 +462,19 @@
             } catch (error) {
                 alert('請求失敗：' + error.message);
             }
+        }
+
+        // ============================================================
+        // 【SEARCH】模糊搜尋
+        // ============================================================
+        function searchData() {
+            const keyword = document.getElementById('searchKeyword').value.trim();
+            loadData(keyword || null);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchKeyword').value = '';
+            loadData();
         }
     </script>
 

@@ -24,5 +24,7 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
 		   "OR c.courtName LIKE CONCAT('%', :keyword, '%') " +
 		   "OR m.fullName LIKE CONCAT('%', :keyword, '%')")
 	List<Booking> searchByKeyword(@Param("keyword") String keyword);
+	
+	List<Booking> findAllByOrderByBookingDateAscStartTimeAsc();
 
 }

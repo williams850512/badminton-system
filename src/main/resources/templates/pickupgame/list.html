@@ -13,12 +13,24 @@
         <!-- ===== 主內容區 ===== -->
         <main class="main-content">
 
-            <!-- 頁面標題 + 新增按鈕 -->
+            <!-- 頁面標題 + 搜尋 + 新增按鈕 -->
             <div class="page-header">
                 <h2><i class="bi bi-people"></i> 臨打揪團管理</h2>
-                <button class="btn btn-primary" onclick="openCreateModal()">
-                    <i class="bi bi-plus-lg"></i> 新增揪團
-                </button>
+                <div class="d-flex gap-2">
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" id="searchKeyword"
+                               placeholder="搜尋主揪、場地、日期...">
+                        <button class="btn btn-outline-secondary" onclick="searchData()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="clearSearch()" title="清除搜尋">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="bi bi-plus-lg"></i> 新增揪團
+                    </button>
+                </div>
             </div>
 
             <!-- 揪團資料表格 -->
@@ -32,6 +44,7 @@
                                 <th>場地</th>
                                 <th>日期</th>
                                 <th>時間</th>
+                                <th>人數</th>
                                 <th>程度</th>
                                 <th>狀態</th>
                                 <th style="width: 200px">操作</th>
@@ -39,7 +52,7 @@
                         </thead>
                         <tbody id="tableBody">
                             <tr class="loading-row">
-                                <td colspan="8">
+                                <td colspan="9">
                                     <div class="spinner-border spinner-border-sm text-primary"></div>
                                     載入中...
                                 </td>
@@ -66,52 +79,81 @@
                 <div class="modal-body">
                     <form id="gameForm">
                         <input type="hidden" id="editId">
+                        <input type="hidden" id="hostId">
+
+                        <!-- 主揪搜尋 -->
+                        <div class="mb-3">
+                            <label for="hostSearch" class="form-label">主揪 <span class="text-danger">*</span></label>
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="hostSearch"
+                                       placeholder="輸入姓名或手機搜尋會員" autocomplete="off" required>
+                                <div id="hostSearchResults" class="list-group position-absolute w-100 shadow"
+                                     style="z-index: 1060; max-height: 200px; overflow-y: auto; display: none;"></div>
+                            </div>
+                            <small id="hostSelectedInfo" class="text-success"></small>
+                        </div>
+
+                        <!-- 場地選擇 -->
+                        <div class="mb-3">
+                            <label for="courtId" class="form-label">場地 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="courtId" required>
+                                <option value="">載入中...</option>
+                            </select>
+                        </div>
 
                         <div class="mb-3">
                             <label for="gameDate" class="form-label">日期 <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" id="gameDate" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="startTime" class="form-label">開始時間 <span class="text-danger">*</span></label>
-                            <select class="form-select" id="startTime" required>
-                                <option value="">請選擇開始時間</option>
-                                <option value="10:00">10:00</option>
-                                <option value="11:00">11:00</option>
-                                <option value="12:00">12:00</option>
-                                <option value="13:00">13:00</option>
-                                <option value="14:00">14:00</option>
-                                <option value="15:00">15:00</option>
-                                <option value="16:00">16:00</option>
-                                <option value="17:00">17:00</option>
-                                <option value="18:00">18:00</option>
-                                <option value="19:00">19:00</option>
-                                <option value="20:00">20:00</option>
-                                <option value="21:00">21:00</option>
-                            </select>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label for="startTime" class="form-label">開始時間 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="startTime" required>
+                                    <option value="">請選擇</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                </select>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label for="endTime" class="form-label">結束時間 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="endTime" required>
+                                    <option value="">請先選擇開始時間</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="endTime" class="form-label">結束時間 <span class="text-danger">*</span></label>
-                            <select class="form-select" id="endTime" required>
-                                <option value="">請先選擇開始時間</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="skillLevel" class="form-label">程度要求</label>
-                            <select class="form-select" id="skillLevel">
-                                <option value="all">不限 (新手/老手皆可)</option>
-                                <option value="beginner">初級 (新手友善/歡樂流汗)</option>
-                                <option value="intermediate">中級 (懂規則/具基本跑位)</option>
-                                <option value="advanced">高級 (高強度/多拍來回)</option>
-                            </select>
-                        </div>
-                        <!-- 注意：因為 host 和 court 是物件關聯，這裡簡單實作先傳送 ID（前端手動輸入或寫死） -->
-                        <div class="mb-3">
-                            <label for="hostId" class="form-label">主揪 ID (測試用)</label>
-                            <input type="number" class="form-control" id="hostId" value="1">
-                        </div>
-                        <div class="mb-3">
-                            <label for="courtId" class="form-label">場地 ID (測試用)</label>
-                            <input type="number" class="form-control" id="courtId" value="1">
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label for="maxPlayers" class="form-label">最大人數 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="maxPlayers" required>
+                                    <option value="2">2 人</option>
+                                    <option value="4" selected>4 人</option>
+                                    <option value="6">6 人</option>
+                                    <option value="8">8 人</option>
+                                    <option value="10">10 人</option>
+                                    <option value="12">12 人</option>
+                                    <option value="16">16 人</option>
+                                    <option value="20">20 人</option>
+                                </select>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label for="skillLevel" class="form-label">程度要求</label>
+                                <select class="form-select" id="skillLevel">
+                                    <option value="ALL">不限</option>
+                                    <option value="BEGINNER">初級</option>
+                                    <option value="INTERMEDIATE">中級</option>
+                                    <option value="ADVANCED">高級</option>
+                                </select>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -133,10 +175,13 @@
         const API_URL = '/api/pickup-games';
         const MEMBER_API_URL = '/api/members';
         const SIGNUPS_API_URL = '/api/pickup-game-signups';
+        const COURT_API_URL = '/api/courts';
         let gameModal;
         
         // 用於暫存揪團資料（避免 JSON.stringify 巢狀物件問題）
         let cachedGames = [];
+        // 暫存場地資料
+        let cachedCourts = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             gameModal = new bootstrap.Modal(document.getElementById('gameModal'));
@@ -149,6 +194,26 @@
             document.getElementById('startTime').addEventListener('change', function() {
                 updateEndTimeOptions(this.value);
             });
+
+            // 綁定主揪搜尋事件（防抖動）
+            document.getElementById('hostSearch').addEventListener('input',
+                debounce(() => searchHost(), 300));
+            
+            // 點擊其他地方時關閉搜尋結果
+            document.addEventListener('click', function(e) {
+                const results = document.getElementById('hostSearchResults');
+                if (results && !e.target.closest('#hostSearch') && !e.target.closest('#hostSearchResults')) {
+                    results.style.display = 'none';
+                }
+            });
+            
+            // 搜尋框按 Enter 觸發搜尋
+            document.getElementById('searchKeyword').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') searchData();
+            });
+
+            // 載入場地選單
+            loadCourts();
             
             loadData();
         });
@@ -174,17 +239,37 @@
         }
 
         // 載入表格資料
-        async function loadData() {
+        async function loadData(keyword) {
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '<tr class="loading-row"><td colspan="8"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</td></tr>';
+            tbody.innerHTML = '<tr class="loading-row"><td colspan="9"><div class="spinner-border spinner-border-sm text-primary"></div> 載入中...</td></tr>';
 
             try {
                 const response = await fetch(API_URL);
-                const games = await response.json();
+                let games = await response.json();
+
+                // 前端模糊篩選
+                if (keyword) {
+                    const kw = keyword.toLowerCase();
+                    games = games.filter(g => {
+                        const hostName = g.host ? (g.host.fullName || g.host.username || '') : '';
+                        const courtName = g.court ? (g.court.courtName || '') : '';
+                        const venueName = (g.court && g.court.venue) ? (g.court.venue.venueName || '') : '';
+                        const date = g.gameDate || '';
+                        const skill = g.skillLevel || '';
+                        const status = g.status || '';
+                        return hostName.toLowerCase().includes(kw)
+                            || courtName.toLowerCase().includes(kw)
+                            || venueName.toLowerCase().includes(kw)
+                            || date.includes(kw)
+                            || skill.toLowerCase().includes(kw)
+                            || status.toLowerCase().includes(kw);
+                    });
+                }
+
                 cachedGames = games; // 暫存供編輯用
 
                 if (games.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">目前沒有資料</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">目前沒有資料</td></tr>';
                     return;
                 }
 
@@ -208,6 +293,14 @@
                         ? `${game.startTime.substring(0,5)} ~ ${game.endTime.substring(0,5)}`
                         : '-';
 
+                    // 人數顯示
+                    const currentP = game.currentPlayers || 0;
+                    const maxP = game.maxPlayers || '-';
+                    const isFull = (maxP !== '-' && currentP >= maxP);
+                    const playersBadge = isFull
+                        ? `<span class="badge bg-danger">${currentP} / ${maxP}</span>`
+                        : `<span class="badge bg-info text-dark">${currentP} / ${maxP}</span>`;
+
                     tbody.innerHTML += `
                         <tr>
                             <td>${game.gameId}</td>
@@ -215,6 +308,7 @@
                             <td>${courtInfo}</td>
                             <td><strong>${game.gameDate}</strong></td>
                             <td>${timeStr}</td>
+                            <td>${playersBadge}</td>
                             <td>${getSkillLevelBadge(game.skillLevel)}</td>
                             <td>${getStatusBadge(game.status)}</td>
                             <td>
@@ -236,35 +330,119 @@
                 });
 
             } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">載入失敗：${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">載入失敗：${error.message}</td></tr>`;
             }
         }
 
         function getStatusBadge(status) {
             const map = {
-                'open':      '<span class="badge bg-success">開放中</span>',
-                'cancelled': '<span class="badge bg-secondary">已取消</span>',
-                'full':      '<span class="badge bg-warning text-dark">已額滿</span>'
+                'OPEN':      '<span class="badge bg-success">開放中</span>',
+                'CANCELLED': '<span class="badge bg-secondary">已取消</span>',
+                'FULL':      '<span class="badge bg-warning text-dark">已額滿</span>',
+                'CLOSED':    '<span class="badge bg-dark">已結束</span>'
             };
             return map[status] || `<span class="badge bg-info">${status}</span>`;
         }
         
         function getSkillLevelBadge(level) {
             const map = {
-                'all':          '<span class="badge bg-secondary">不限</span>',
-                'beginner':     '<span class="badge bg-success">初級</span>',
-                'intermediate': '<span class="badge bg-primary">中級</span>',
-                'advanced':     '<span class="badge bg-danger">高級</span>'
+                'ALL':          '<span class="badge bg-secondary">不限</span>',
+                'BEGINNER':     '<span class="badge bg-success">初級</span>',
+                'INTERMEDIATE': '<span class="badge bg-primary">中級</span>',
+                'ADVANCED':     '<span class="badge bg-danger">高級</span>'
             };
             return map[level] || `<span class="badge bg-secondary">${level}</span>`;
         }
 
+        // ============================================================
+        // 【SEARCH】模糊搜尋
+        // ============================================================
+        function searchData() {
+            const keyword = document.getElementById('searchKeyword').value.trim();
+            loadData(keyword || null);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchKeyword').value = '';
+            loadData();
+        }
+
+        // ============================================================
+        // 【場地下拉選單】載入所有場地
+        // ============================================================
+        async function loadCourts() {
+            const courtSelect = document.getElementById('courtId');
+            try {
+                const res = await fetch(COURT_API_URL);
+                const courts = await res.json();
+                cachedCourts = courts;
+
+                courtSelect.innerHTML = '<option value="">請選擇場地</option>';
+                courts.forEach(c => {
+                    const venueName = c.venue ? c.venue.venueName + ' / ' : '';
+                    courtSelect.innerHTML += `<option value="${c.courtId}">${venueName}${c.courtName}</option>`;
+                });
+            } catch (error) {
+                courtSelect.innerHTML = '<option value="">載入場地失敗</option>';
+            }
+        }
+
+        // ============================================================
+        // 【主揪搜尋】輸入姓名或手機搜尋會員
+        // ============================================================
+        async function searchHost() {
+            const keyword = document.getElementById('hostSearch').value.trim();
+            const resultsDiv = document.getElementById('hostSearchResults');
+
+            if (keyword.length < 1) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${MEMBER_API_URL}/search?keyword=${encodeURIComponent(keyword)}`);
+                const members = await res.json();
+
+                if (members.length === 0) {
+                    resultsDiv.innerHTML = '<div class="list-group-item text-muted small">找不到符合的會員</div>';
+                } else {
+                    resultsDiv.innerHTML = members.map(m => `
+                        <button type="button" class="list-group-item list-group-item-action py-1"
+                                onclick="selectHost(${m.memberId}, '${(m.fullName || '').replace(/'/g, "\\'")}', '${(m.phone || '').replace(/'/g, "\\'")}')">
+                            <strong>${m.fullName || m.username}</strong>
+                            <small class="text-muted ms-1">${m.phone || ''}</small>
+                        </button>
+                    `).join('');
+                }
+                resultsDiv.style.display = 'block';
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="list-group-item text-danger small">搜尋失敗</div>';
+                resultsDiv.style.display = 'block';
+            }
+        }
+
+        // 選擇主揪
+        function selectHost(memberId, name, phone) {
+            document.getElementById('hostId').value = memberId;
+            document.getElementById('hostSearch').value = name;
+            document.getElementById('hostSelectedInfo').textContent = `✓ ${name} (ID: ${memberId}${phone ? ', ' + phone : ''})`;
+            document.getElementById('hostSearchResults').style.display = 'none';
+        }
+
+        // ============================================================
+        // 【Modal 操作】
+        // ============================================================
         function openCreateModal() {
             document.getElementById('modalTitle').textContent = '新增揪團';
             document.getElementById('gameForm').reset();
             document.getElementById('editId').value = '';
+            document.getElementById('hostId').value = '';
+            document.getElementById('hostSearch').value = '';
+            document.getElementById('hostSelectedInfo').textContent = '';
             // 重置結束時間選單
             document.getElementById('endTime').innerHTML = '<option value="">請先選擇開始時間</option>';
+            // 預設最大人數
+            document.getElementById('maxPlayers').value = '4';
             gameModal.show();
         }
 
@@ -287,11 +465,21 @@
             document.getElementById('endTime').value = endHour;
             
             document.getElementById('skillLevel').value = game.skillLevel;
+            document.getElementById('maxPlayers').value = game.maxPlayers || 4;
             
-            // 處理關聯物件的 ID (如果有值的話)
+            // 處理主揪（顯示名稱 + 設定隱藏 ID）
             if (game.host) {
                 document.getElementById('hostId').value = game.host.memberId;
+                const hostName = game.host.fullName || game.host.username;
+                document.getElementById('hostSearch').value = hostName;
+                document.getElementById('hostSelectedInfo').textContent = `✓ ${hostName} (ID: ${game.host.memberId})`;
+            } else {
+                document.getElementById('hostId').value = '';
+                document.getElementById('hostSearch').value = '';
+                document.getElementById('hostSelectedInfo').textContent = '';
             }
+            
+            // 處理場地
             if (game.court) {
                 document.getElementById('courtId').value = game.court.courtId;
             }
@@ -299,18 +487,30 @@
             gameModal.show();
         }
 
-        // 新增揪團
+        // 儲存揪團（新增 / 編輯）
         async function saveGame() {
             const id = document.getElementById('editId').value;
-            // 根據 Entity 組合 JSON
+            const hostId = document.getElementById('hostId').value;
+            const courtId = document.getElementById('courtId').value;
+
+            // 驗證必填
+            if (!hostId) {
+                alert('請搜尋並選擇一位主揪！');
+                return;
+            }
+            if (!courtId) {
+                alert('請選擇場地！');
+                return;
+            }
+
             const data = {
                 gameDate: document.getElementById('gameDate').value,
                 startTime: document.getElementById('startTime').value,
                 endTime: document.getElementById('endTime').value,
                 skillLevel: document.getElementById('skillLevel').value,
-                // 物件關聯寫法：包成一個帶有 ID 的物件傳給後端
-                host: { memberId: document.getElementById('hostId').value },
-                court: { courtId: document.getElementById('courtId').value }
+                maxPlayers: parseInt(document.getElementById('maxPlayers').value),
+                host: { memberId: parseInt(hostId) },
+                court: { courtId: parseInt(courtId) }
             };
 
             if (!data.gameDate || !data.startTime || !data.endTime) {
@@ -330,17 +530,14 @@
                     });
                 }
 
-                // 註：這會因為你資料庫目前還沒有 Members/Courts 表的資料而報 500 Constraint 錯誤是正常的
-                // 因為 FK 關聯檢查找不到 ID=1 的會員或場地。等資料齊全就能新增成功。
-
                 if (response.ok) {
                     gameModal.hide();
                     loadData();
-                    alert(id ? '更新成功！' : '新增請求已送出！(注意：需有實體會員/場地關聯才能成功存入DB)');
+                    alert(id ? '更新成功！' : '新增成功！');
                 } else {
                     const err = await response.text();
                     console.error("錯誤:", err);
-                    alert('操作失敗！請確認你的資料庫目前是否有 id=1 的會員與場地可供關聯。詳細訊息請看 Console。');
+                    alert('操作失敗：' + err);
                 }
             } catch (error) {
                 alert('請求失敗：' + error.message);
@@ -385,7 +582,7 @@
             const subRow = document.createElement('tr');
             subRow.id = `signups-row-${gameId}`;
             subRow.innerHTML = `
-                <td colspan="8" style="background-color: #f8f9fa; padding: 16px 24px;">
+                <td colspan="9" style="background-color: #f8f9fa; padding: 16px 24px;">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <strong><i class="bi bi-people-fill"></i> 報名名單</strong>
                         <div class="spinner-border spinner-border-sm" id="signup-loading-${gameId}"></div>
