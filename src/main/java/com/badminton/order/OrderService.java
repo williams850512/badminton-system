@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.badminton.product.Product;
+import com.badminton.product.ProductRepository;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final ProductRepository productRepo;
 
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
@@ -39,7 +41,19 @@ public class OrderService {
     public void saveOrderItem(OrderItem orderItem) {
         // subtotal 自動計算 = quantity × unitPrice (對應 V2 的 OrderItemDAO 邏輯)
         orderItem.setSubtotal(orderItem.getQuantity() * orderItem.getUnitPrice());
+        // ① 從資料庫查出商品
+        Product product = productRepo.findById(orderItem.getProduct().getProductId()).orElseThrow(
+        	    () -> new RuntimeException("找不到商品"));
+        // ② 檢查庫存夠不夠
+        if(product.getStockQty() < orderItem.getQuantity()) {
+        	throw new RuntimeException("庫存不足！剩餘：" + product.getStockQty());
+        }
+        // ③ 扣庫存
+        product.setStockQty(product.getStockQty() - orderItem.getQuantity());
+        productRepo.save(product);
+        
         orderItemRepository.save(orderItem);
+        
         // 新增明細後，重新計算訂單總金額
         recalcOrderTotal(orderItem.getOrderId());
     }
