@@ -135,14 +135,18 @@
                             <div class="col-6 mb-3">
                                 <label for="maxPlayers" class="form-label">最大人數 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="maxPlayers" required>
+                                    <option value="1">1 人</option>
                                     <option value="2">2 人</option>
+                                    <option value="3">3 人</option>
                                     <option value="4" selected>4 人</option>
+                                    <option value="5">5 人</option>
                                     <option value="6">6 人</option>
+                                    <option value="7">7 人</option>
                                     <option value="8">8 人</option>
+                                    <option value="9">9 人</option>
                                     <option value="10">10 人</option>
+                                    <option value="11">11 人</option>
                                     <option value="12">12 人</option>
-                                    <option value="16">16 人</option>
-                                    <option value="20">20 人</option>
                                 </select>
                             </div>
                             <div class="col-6 mb-3">
@@ -314,6 +318,7 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-info" title="查看報名"
+                                            data-game-id="${game.gameId}"
                                             onclick="toggleSignups(${game.gameId}, this)">
                                         <i class="bi bi-caret-right-fill"></i> 查看報名
                                     </button>
@@ -706,6 +711,14 @@
                 return;
             }
 
+            // 檢查是否為主揪本人
+            const game = cachedGames.find(g => g.gameId === gameId);
+            if (game && game.host && game.host.memberId === parseInt(memberId)) {
+                if (!confirm('此會員已是本場揪團的主揪，確定要額外報名嗎？')) {
+                    return;
+                }
+            }
+
             try {
                 const res = await fetch(SIGNUPS_API_URL, {
                     method: 'POST',
@@ -721,10 +734,10 @@
                     document.getElementById(`add-member-search-${gameId}`).value = '';
                     document.getElementById(`add-member-id-${gameId}`).value = '';
                     document.getElementById(`add-member-name-${gameId}`).textContent = '';
-                    // 重新載入報名名單
-                    await loadSignups(gameId);
-                    // 重新載入揪團列表（更新人數）
-                    loadData();
+                    alert('報名成功！');
+                    // 重新載入揪團列表（更新人數），然後自動展開原本的揪團
+                    await loadData();
+                    reExpandSignups(gameId);
                 } else {
                     const err = await res.text();
                     alert('報名失敗：' + err);
@@ -740,8 +753,9 @@
             try {
                 const res = await fetch(`${SIGNUPS_API_URL}/${signupId}`, { method: 'DELETE' });
                 if (res.ok) {
-                    await loadSignups(gameId);
-                    loadData();
+                    alert('已成功移除！');
+                    await loadData();
+                    reExpandSignups(gameId);
                 } else {
                     alert('移除失敗');
                 }
@@ -757,6 +771,14 @@
                 clearTimeout(timer);
                 timer = setTimeout(() => fn.apply(this, args), delay);
             };
+        }
+
+        // 重新展開指定揪團的報名面板（loadData 重建表格後自動再展開）
+        function reExpandSignups(gameId) {
+            const btn = document.querySelector(`button[data-game-id="${gameId}"]`);
+            if (btn) {
+                toggleSignups(gameId, btn);
+            }
         }
 
         function getSignupStatusBadge(status) {

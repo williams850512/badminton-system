@@ -38,7 +38,7 @@
                             onclick="resetSearch()" style="display: none;">
                         <i class="bi bi-x-lg"></i> 清除
                     </button>
-                    <a th:if="${session.adminUser != null and session.adminUser.role == 'manager'}"
+                    <a th:if="${session.adminUser != null and session.adminUser.role.name() == 'MANAGER'}"
                        href="/admin" class="btn btn-secondary btn-sm">
                         <i class="bi bi-person-badge"></i> 職員管理
                     </a>
