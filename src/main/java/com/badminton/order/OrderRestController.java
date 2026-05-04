@@ -14,10 +14,6 @@ public class OrderRestController {
 
     private final OrderService orderService;
 
-    // =====================================================================
-    // === Order (訂單) CRUD ===
-    // =====================================================================
-
     // GET /api/orders → 取得所有訂單
     @GetMapping
     public List<Order> findAll() {
@@ -74,10 +70,6 @@ public class OrderRestController {
         orderService.deleteOrder(id);
         return ResponseEntity.ok().build();
     }
-
-    // =====================================================================
-    // === OrderItem (訂單明細) CRUD ===
-    // =====================================================================
 
     // GET /api/orders/3/items → 取得某訂單的所有明細
     @GetMapping("/{orderId}/items")

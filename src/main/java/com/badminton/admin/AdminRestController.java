@@ -20,7 +20,6 @@ public class AdminRestController {
     @Autowired
     private MemberService memberService;
 
-    // 管理員登入
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, HttpSession session) {
         return adminService.login(loginData.get("username"), loginData.get("password"))
@@ -31,13 +30,11 @@ public class AdminRestController {
             .orElse(ResponseEntity.status(401).body("帳號或密碼錯誤"));
     }
 
-    // 取得所有管理員清單
     @GetMapping("/list")
     public List<Admin> getAllAdmins() {
         return adminService.getAllAdmins();
     }
 
-    // 根據 ID 取得單一管理員
     @GetMapping("/{id}")
     public ResponseEntity<?> getAdminById(@PathVariable int id) {
         return adminService.getAdminById(id)
@@ -45,7 +42,6 @@ public class AdminRestController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 新增管理員
     @PostMapping("/add")
     public ResponseEntity<?> addAdmin(@RequestBody Admin admin) {
         try {
@@ -56,7 +52,6 @@ public class AdminRestController {
         }
     }
 
-    // 修改管理員資料
     @PutMapping("/{id}")
     public ResponseEntity<?> updateAdmin(@PathVariable int id, @RequestBody Admin admin) {
         admin.setAdminId(id);
@@ -64,7 +59,6 @@ public class AdminRestController {
         return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
     }
 
-    // 刪除管理員
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAdmin(@PathVariable int id) {
         try {
@@ -75,20 +69,17 @@ public class AdminRestController {
         }
     }
 
-    // 搜尋管理員
     @GetMapping("/search")
     public List<Admin> searchAdmins(@RequestParam String keyword) {
         return adminService.searchAdmins(keyword);
     }
 
-    // 修改管理員備註
     @PatchMapping("/{id}/note")
     public ResponseEntity<?> updateAdminNote(@PathVariable int id, @RequestBody Map<String, String> data) {
         boolean success = adminService.updateAdminNote(id, data.get("note"));
         return success ? ResponseEntity.ok("備註更新成功") : ResponseEntity.badRequest().body("更新失敗");
     }
 
-    // ================= Member Management =================
     @GetMapping("/member")
     public List<Member> getAllMembers() {
         return memberService.getAllMembers();
@@ -129,7 +120,6 @@ public class AdminRestController {
         return success ? ResponseEntity.ok("備註更新成功") : ResponseEntity.badRequest().body("更新失敗");
     }
 
-    // 變更管理員狀態
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateAdminStatus(@PathVariable int id, @RequestBody Map<String, String> data) {
         return adminService.getAdminById(id).map(admin -> {
@@ -139,7 +129,6 @@ public class AdminRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // 變更會員狀態
     @PatchMapping("/member/{id}/status")
     public ResponseEntity<?> updateMemberStatus(@PathVariable int id, @RequestBody Map<String, String> data) {
         return memberService.getMemberById(id).map(member -> {
