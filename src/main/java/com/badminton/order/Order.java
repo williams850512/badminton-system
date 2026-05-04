@@ -1,5 +1,8 @@
 package com.badminton.order;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -8,6 +11,7 @@ import com.badminton.member.Member;
 
 @Entity
 @Table(name = "Orders") // 若 SQL Server 已經存在此表，通常叫做 Orders
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,8 +25,10 @@ public class Order {
     // @ManyToOne: 多筆訂單對應同一位會員，JPA 會自動 JOIN Members 表
     @ManyToOne
     @JoinColumn(name = "member_id")
+    @JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
     private Member member;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "order_date", nullable = false)
     private LocalDateTime orderDate;
 
@@ -40,6 +46,7 @@ public class Order {
     @Column(name = "note")
     private String note;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

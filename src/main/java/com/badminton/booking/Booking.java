@@ -7,6 +7,8 @@ import java.time.LocalTime;
 
 import com.badminton.court.Court;
 import com.badminton.member.Member;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,6 +26,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity @Table(name = "Bookings")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -35,18 +38,23 @@ public class Booking {
 	
 	@ManyToOne
 	@JoinColumn(name = "member_id")
+	@JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
 	private Member member;
 	
 	@ManyToOne
 	@JoinColumn(name = "court_id",nullable = false)
+	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 	private Court court;
 	
+	@JsonFormat(pattern = "yyyy-MM-dd")
 	@Column(name = "booking_date")
 	private LocalDate bookingDate;
 	
+	@JsonFormat(pattern = "HH:mm")
 	@Column(name = "start_time")
 	private LocalTime startTime;
 	
+	@JsonFormat(pattern = "HH:mm")
 	@Column(name = "end_time")
 	private LocalTime endTime;
 	
@@ -60,6 +68,7 @@ public class Booking {
 	@Column(name = "note")
 	private String note;
 	
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	@Column(name = "created_at", updatable = false)
 	private LocalDateTime createdAt;
 	

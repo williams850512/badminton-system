@@ -7,6 +7,7 @@ import java.time.LocalTime;
 
 import com.badminton.court.Court;
 import com.badminton.member.Member;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
@@ -38,19 +39,24 @@ public class PickupGames {
 	// 多筆揪團可以對應「同一個」主揪（Members）
 	@ManyToOne
 	@JoinColumn(name = "host_id", nullable = false)
+	@JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
 	private Member host;
 
 	// 多筆揪團可以在「同一個」場地（Court）上舉行
 	@ManyToOne
 	@JoinColumn(name = "court_id", nullable = false)
+	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 	private Court court;
 
+	@JsonFormat(pattern = "yyyy-MM-dd")
 	@Column(name = "game_date", nullable = false)
 	private LocalDate gameDate;
 
+	@JsonFormat(pattern = "HH:mm")
 	@Column(name = "start_time", nullable = false)
 	private LocalTime startTime;
 
+	@JsonFormat(pattern = "HH:mm")
 	@Column(name = "end_time", nullable = false)
 	private LocalTime endTime;
 
@@ -74,6 +80,7 @@ public class PickupGames {
 	@Column(name = "status", nullable = false, length = 10)
 	private PickupGameStatus status = PickupGameStatus.OPEN;
 
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
 

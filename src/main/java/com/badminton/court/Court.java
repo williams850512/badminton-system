@@ -1,6 +1,7 @@
 package com.badminton.court;
 
 import com.badminton.venue.Venue;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,6 +18,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity @Table(name="Courts")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,6 +30,7 @@ public class Court {
 	
 	@ManyToOne
 	@JoinColumn(name = "venue_id", nullable = false)
+	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 	private Venue venue;
 	
 	@Column(name = "court_name")

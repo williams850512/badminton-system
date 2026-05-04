@@ -2,6 +2,8 @@ package com.badminton.announcement;
 import java.time.LocalDateTime;
 
 import com.badminton.admin.Admin;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,6 +22,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity @Table(name = "Announcements")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,6 +33,7 @@ public class Announcement {
 	
 	@ManyToOne
 	@JoinColumn(name="admin_id")
+	@JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
 	private Admin admin;
 	
 	@Column(name = "title", nullable = false, length = 255)
@@ -51,9 +55,11 @@ public class Announcement {
 	@Column(name = "view_count")
 	private Integer viewCount;
 	
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	@Column(name = "created_at", updatable = false)
 	private LocalDateTime createdAt;
 	
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	@Column(name = "updated_at")
 	private LocalDateTime updatedAt;
 	

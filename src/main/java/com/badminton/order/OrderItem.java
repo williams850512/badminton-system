@@ -1,12 +1,14 @@
   package com.badminton.order;
 
 import com.badminton.product.Product;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Table(name = "OrderItems")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,6 +24,7 @@ public class OrderItem {
 
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Product product;
 
     @Column(name = "quantity", nullable = false)

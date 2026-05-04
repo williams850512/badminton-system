@@ -1,5 +1,8 @@
 package com.badminton.product;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -20,6 +23,7 @@ import lombok.NoArgsConstructor;
  */
 @Entity
 @Table(name = "Products")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @NoArgsConstructor
 public class Product {
@@ -55,6 +59,7 @@ public class Product {
     @Column(name = "status", nullable = false, length = 20)
     private ProductStatus status = ProductStatus.ACTIVE;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     
