@@ -132,4 +132,17 @@ public class MemberService {
 	public void deleteMember(int id) {
 		memberRepo.deleteById(id);
 	}
+
+	// 10. 忘記密碼 — 驗證身份後重設密碼
+	@Transactional
+	public boolean resetPassword(String username, String email, String birthday, String newPassword) {
+		// 驗證身份：帳號 + Email + 生日 三者必須都正確
+		Optional<Member> member = memberRepo.findByUsernameAndEmailAndBirthday(username, email, birthday);
+		if (member.isEmpty()) {
+			return false;
+		}
+		// 更新密碼
+		int result = memberRepo.updatePassword(member.get().getMemberId(), newPassword);
+		return result > 0;
+	}
 }

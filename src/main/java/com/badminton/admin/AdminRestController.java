@@ -1,12 +1,13 @@
 package com.badminton.admin;
 
+import com.badminton.config.JwtUtil;
 import com.badminton.member.Member;
 import com.badminton.member.MemberService;
 import com.badminton.member.MemberStatus;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,12 +21,19 @@ public class AdminRestController {
     @Autowired
     private MemberService memberService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    // 管理員登入（回傳 JWT Token）
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, HttpSession session) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
         return adminService.login(loginData.get("username"), loginData.get("password"))
             .<ResponseEntity<?>>map(admin -> {
-                session.setAttribute("adminUser", admin);
-                return ResponseEntity.ok(admin);
+                String token = jwtUtil.generateToken(admin.getAdminId(), admin.getUsername(), admin.getRole().name());
+                Map<String, Object> result = new HashMap<>();
+                result.put("token", token);
+                result.put("admin", admin);
+                return ResponseEntity.ok(result);
             })
             .orElse(ResponseEntity.status(401).body("帳號或密碼錯誤"));
     }
@@ -138,11 +146,9 @@ public class AdminRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    // JWT 登出（stateless，由前端刪除 token）
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpSession session) {
-        if (session != null) {
-            session.invalidate();
-        }
+    public ResponseEntity<?> logout() {
         return ResponseEntity.ok("已登出");
     }
 }
