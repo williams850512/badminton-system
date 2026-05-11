@@ -1,9 +1,12 @@
 package com.badminton.booking;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.badminton.court.Court;
 
 import jakarta.transaction.Transactional;
 
@@ -77,6 +80,14 @@ public class BookingService {
 			return bookingRepo.findAll();
 		}
 		return bookingRepo.searchByKeyword(keyword);
+	}
+	
+	public List<Booking> findByCourtAndDate(Integer courtId, LocalDate date) {
+	    Court court = new Court();
+	    court.setCourtId(courtId);
+	    return bookingRepo.findByCourtAndBookingDateAndStatusNot(
+	        court, date, BookingStatus.CANCELLED
+	    );
 	}
 
 }
