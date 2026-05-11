@@ -7,6 +7,7 @@ import com.badminton.member.MemberStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,24 @@ public class AdminRestController {
                 return ResponseEntity.ok(result);
             })
             .orElse(ResponseEntity.status(401).body("帳號或密碼錯誤"));
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(HttpServletRequest request) {
+        Integer adminId = (Integer) request.getAttribute("jwtUserId");
+        if (adminId == null) return ResponseEntity.status(401).body("未登入");
+        return adminService.getAdminById(adminId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@RequestBody Admin admin, HttpServletRequest request) {
+        Integer adminId = (Integer) request.getAttribute("jwtUserId");
+        if (adminId == null) return ResponseEntity.status(401).body("請重新登入後再修改");
+        admin.setAdminId(adminId);
+        Admin updated = adminService.updateAdmin(admin);
+        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.badRequest().body("更新失敗");
     }
 
     @GetMapping("/list")

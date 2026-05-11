@@ -1,10 +1,15 @@
 package com.badminton.member;
 
 import com.badminton.config.JwtUtil;
+import com.badminton.member.dto.MemberResponseDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.badminton.notification.NotificationMessage;
+import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +24,9 @@ public class MemberRestController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
     // 1. 會員登入（回傳 JWT Token）
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
@@ -30,7 +38,7 @@ public class MemberRestController {
                 String token = jwtUtil.generateToken(user.getMemberId(), user.getUsername(), "MEMBER");
                 Map<String, Object> result = new HashMap<>();
                 result.put("token", token);
-                result.put("member", user);
+                result.put("member", new MemberResponseDTO(user));
                 return ResponseEntity.ok(result);
             })
             .orElse(ResponseEntity.status(401).body("帳號或密碼錯誤"));
@@ -40,8 +48,25 @@ public class MemberRestController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Member member) {
         try {
+            if (member.getUsername() == null || !member.getUsername().matches("^[A-Za-z0-9]{8,12}$")) {
+                return ResponseEntity.badRequest().body("帳號必須為 8-12 碼英數字 (不可包含特殊字元)");
+            }
+            if (member.getBirthday() != null && member.getBirthday().isAfter(java.time.LocalDate.now())) {
+                return ResponseEntity.badRequest().body("生日不能設定為未來的日期");
+            }
+
             Member savedMember = memberService.register(member);
-            return ResponseEntity.ok(savedMember);
+            
+            // 廣播推播通知給後台管理員
+            NotificationMessage msg = new NotificationMessage(
+                    UUID.randomUUID().toString(),
+                    "新會員註冊",
+                    "有新會員「" + savedMember.getUsername() + "」剛剛註冊成功囉！",
+                    LocalDateTime.now()
+            );
+            messagingTemplate.convertAndSend("/topic/admin/notifications", msg);
+
+            return ResponseEntity.ok(new MemberResponseDTO(savedMember));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -49,8 +74,10 @@ public class MemberRestController {
 
     // 3. 搜尋
     @GetMapping("/search")
-    public List<Member> search(@RequestParam String keyword) {
-        return memberService.searchMembers(keyword);
+    public List<MemberResponseDTO> search(@RequestParam String keyword) {
+        return memberService.searchMembers(keyword).stream()
+                .map(MemberResponseDTO::new)
+                .collect(java.util.stream.Collectors.toList());
     }
 
     // 4. 取得個人資料（從 JWT 的 request attribute 取得 userId）
@@ -61,6 +88,7 @@ public class MemberRestController {
             return ResponseEntity.status(401).body("未登入");
         }
         return memberService.getMemberById(userId)
+                .map(MemberResponseDTO::new)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -75,7 +103,7 @@ public class MemberRestController {
         member.setMemberId(userId);
         Member updated = memberService.updateMember(member);
         if (updated != null) {
-            return ResponseEntity.ok(updated);
+            return ResponseEntity.ok(new MemberResponseDTO(updated));
         }
         return ResponseEntity.badRequest().body("更新失敗");
     }
