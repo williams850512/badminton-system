@@ -31,7 +31,7 @@ public class BookingService {
 	// ===== 查詢 =====
 	
 	public List<Booking> findAll(){
-		return bookingRepo.findAllByOrderByBookingDateAscStartTimeAsc();	
+		return bookingRepo.findAllByOrderByBookingDateDescStartTimeDesc();	
 	}
 	
 	public Booking findById(Integer id) {
