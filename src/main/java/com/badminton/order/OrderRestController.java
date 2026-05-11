@@ -14,9 +14,13 @@ public class OrderRestController {
 
     private final OrderService orderService;
 
-    // GET /api/orders → 取得所有訂單
+    // GET /api/orders          → 取得所有訂單（後台用）
+    // GET /api/orders?memberId=3 → 取得某會員的訂單（前台用）
     @GetMapping
-    public List<Order> findAll() {
+    public List<Order> findAll(@RequestParam(required = false) Integer memberId) {
+        if (memberId != null) {
+            return orderService.getOrdersByMemberId(memberId);
+        }
         return orderService.getAllOrders();
     }
 
