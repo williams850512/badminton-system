@@ -145,4 +145,47 @@ public class MemberService {
 		int result = memberRepo.updatePassword(member.get().getMemberId(), newPassword);
 		return result > 0;
 	}
+
+	// 11. Google 第三方登入
+	@Transactional
+	public Member googleLogin(String googleId, String email, String fullName, String pictureUrl) {
+		// 1. 先用 googleId 找看看有沒有綁定過的會員
+		Optional<Member> existingMember = memberRepo.findByGoogleId(googleId);
+		if (existingMember.isPresent()) {
+			Member m = existingMember.get();
+			memberRepo.updateLastLoginTime(m.getMemberId());
+			return m;
+		}
+
+		// 2. 如果沒有綁定過 googleId，用 Email 找找看有沒有註冊過
+		Optional<Member> memberByEmail = memberRepo.findByEmail(email);
+		if (memberByEmail.isPresent()) {
+			// 如果有，就幫他自動綁定 googleId 並登入
+			Member m = memberByEmail.get();
+			m.setGoogleId(googleId);
+			if (m.getAuthProvider() == null || m.getAuthProvider().equals("LOCAL")) {
+				m.setAuthProvider("GOOGLE_LINKED");
+			}
+			memberRepo.save(m);
+			memberRepo.updateLastLoginTime(m.getMemberId());
+			return m;
+		}
+
+		// 3. 如果連 Email 都沒註冊過，直接幫他自動註冊一個新會員
+		Member newMember = new Member();
+		newMember.setUsername("g_" + googleId.substring(0, Math.min(googleId.length(), 10))); // 隨機產生一個 username
+		newMember.setEmail(email);
+		newMember.setFullName(fullName);
+		newMember.setProfilePicture(pictureUrl);
+		newMember.setAuthProvider("GOOGLE");
+		newMember.setGoogleId(googleId);
+		newMember.setStatus(MemberStatus.ACTIVE);
+		newMember.setMembershipLevel(MembershipLevel.NORMAL);
+		
+		LocalDateTime now = LocalDateTime.now();
+		newMember.setCreatedAt(now);
+		newMember.setUpdatedAt(now);
+
+		return memberRepo.save(newMember);
+	}
 }

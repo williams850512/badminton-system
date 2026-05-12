@@ -22,6 +22,10 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
     // 2. 查重
     boolean existsByUsername(String username);
 
+    // Google 第三方登入相關
+    Optional<Member> findByGoogleId(String googleId);
+    Optional<Member> findByEmail(String email);
+
     // 3. 登入時間
     @Modifying
     @Transactional

@@ -44,12 +44,57 @@ public class MemberRestController {
             .orElse(ResponseEntity.status(401).body("帳號或密碼錯誤"));
     }
 
+    // 1.5 Google 第三方登入
+    @PostMapping("/google-login")
+    public ResponseEntity<?> googleLogin(@RequestBody com.badminton.member.dto.GoogleLoginRequestDTO request) {
+        try {
+            // 注意：這裡的 Client ID 必須替換為您在 Google Cloud Console 申請的真實 ID
+            String CLIENT_ID = "901309102855-shi28efflfnhvjkjo27askl6ntt3tqv9.apps.googleusercontent.com"; 
+
+            com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier verifier = 
+                new com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier.Builder(
+                    new com.google.api.client.http.javanet.NetHttpTransport(), 
+                    new com.google.api.client.json.gson.GsonFactory())
+                .setAudience(java.util.Collections.singletonList(CLIENT_ID))
+                .build();
+
+            com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = verifier.verify(request.getCredential());
+            if (idToken != null) {
+                com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload = idToken.getPayload();
+
+                String googleId = payload.getSubject();
+                String email = payload.getEmail();
+                String name = (String) payload.get("name");
+                String pictureUrl = (String) payload.get("picture");
+
+                // 呼叫 Service 執行綁定或自動註冊
+                Member user = memberService.googleLogin(googleId, email, name, pictureUrl);
+
+                // 核發系統的 JWT Token
+                String token = jwtUtil.generateToken(user.getMemberId(), user.getUsername(), "MEMBER");
+                Map<String, Object> result = new HashMap<>();
+                result.put("token", token);
+                result.put("member", new MemberResponseDTO(user));
+                return ResponseEntity.ok(result);
+
+            } else {
+                return ResponseEntity.status(401).body(java.util.Map.of("message", "無效的 Google Token"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(java.util.Map.of("message", "伺服器驗證失敗：" + e.getMessage()));
+        }
+    }
+
     // 2. 註冊 新增會員
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Member member) {
         try {
-            if (member.getUsername() == null || !member.getUsername().matches("^[A-Za-z0-9]{8,12}$")) {
-                return ResponseEntity.badRequest().body("帳號必須為 8-12 碼英數字 (不可包含特殊字元)");
+            if (member.getUsername() == null || !member.getUsername().matches("^[A-Za-z0-9]{6,12}$")) {
+                return ResponseEntity.badRequest().body("帳號必須為 6-12 碼英數字 (不可包含特殊字元)");
+            }
+            if (member.getPassword() == null || member.getPassword().length() < 6 || member.getPassword().length() > 12) {
+                return ResponseEntity.badRequest().body("密碼必須為 6-12 個字元");
             }
             if (member.getBirthday() != null && member.getBirthday().isAfter(java.time.LocalDate.now())) {
                 return ResponseEntity.badRequest().body("生日不能設定為未來的日期");
