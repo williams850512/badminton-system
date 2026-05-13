@@ -27,6 +27,12 @@ public class MemberRestController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private VerificationCodeStore verificationCodeStore;
+
     // 1. 會員登入（回傳 JWT Token）
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
@@ -153,31 +159,95 @@ public class MemberRestController {
         return ResponseEntity.badRequest().body("更新失敗");
     }
 
+    // 5.5 修改密碼
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> data, HttpServletRequest request) {
+        Integer userId = (Integer) request.getAttribute("jwtUserId");
+        if (userId == null) {
+            return ResponseEntity.status(401).body("請重新登入後再操作");
+        }
+        
+        String oldPassword = data.get("oldPassword");
+        String newPassword = data.get("newPassword");
+        
+        if (oldPassword == null || newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body("密碼格式不正確或長度不足 6 位");
+        }
+        
+        try {
+            boolean success = memberService.changePassword(userId, oldPassword, newPassword);
+            if (success) {
+                return ResponseEntity.ok(Map.of("message", "密碼修改成功"));
+            }
+            return ResponseEntity.badRequest().body("修改失敗");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // 6. 登出（JWT 是 stateless，前端刪除 token 即可）
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
         return ResponseEntity.ok("已成功登出");
     }
 
-    // 7. 忘記密碼 — 驗證身份後重設密碼
+    // 7. 發送驗證碼到會員信箱
+    @PostMapping("/send-verification-code")
+    public ResponseEntity<?> sendVerificationCode(@RequestBody Map<String, String> data) {
+        String username = data.get("username");
+        String email = data.get("email");
+
+        if (username == null || email == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "請輸入帳號和電子信箱"));
+        }
+
+        // 檢查帳號 + Email 是否匹配
+        var member = memberService.findByUsernameAndEmail(username.trim(), email.trim());
+        if (member.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "找不到符合的會員，請確認帳號與信箱是否正確"));
+        }
+
+        // 產生 6 位數驗證碼
+        String code = String.valueOf((int) (Math.random() * 900000) + 100000);
+        verificationCodeStore.save(email.trim(), code);
+
+        // 寄送驗證碼
+        try {
+            emailService.sendVerificationCode(email.trim(), code);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "驗證碼寄送失敗，請稍後再試"));
+        }
+
+        return ResponseEntity.ok(Map.of("message", "驗證碼已寄送至您的信箱"));
+    }
+
+    // 8. 忘記密碼 — 使用驗證碼重設密碼
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> data) {
         String username = data.get("username");
         String email = data.get("email");
-        String birthday = data.get("birthday");
+        String code = data.get("code");
         String newPassword = data.get("newPassword");
 
-        if (username == null || email == null || birthday == null || newPassword == null) {
+        if (username == null || email == null || code == null || newPassword == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "所有欄位都必須填寫"));
         }
         if (newPassword.length() < 6) {
             return ResponseEntity.badRequest().body(Map.of("message", "新密碼至少需要 6 個字元"));
         }
 
-        boolean success = memberService.resetPassword(username, email, birthday, newPassword);
+        // 驗證碼檢查
+        if (!verificationCodeStore.verify(email.trim(), code.trim())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "驗證碼錯誤或已過期，請重新取得"));
+        }
+
+        // 重設密碼
+        boolean success = memberService.resetPasswordByEmail(username.trim(), email.trim(), newPassword);
         if (success) {
+            verificationCodeStore.remove(email.trim()); // 驗證碼一次性，用完就刪
             return ResponseEntity.ok(Map.of("message", "密碼已重設成功，請使用新密碼登入"));
         }
-        return ResponseEntity.badRequest().body(Map.of("message", "驗證失敗，請確認帳號、信箱與生日是否正確"));
+        return ResponseEntity.badRequest().body(Map.of("message", "重設失敗，請確認帳號與信箱是否正確"));
     }
 }

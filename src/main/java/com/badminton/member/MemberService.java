@@ -133,7 +133,29 @@ public class MemberService {
 		memberRepo.deleteById(id);
 	}
 
-	// 10. 忘記密碼 — 驗證身份後重設密碼
+	// 10. 修改密碼 (登入狀態下使用)
+	@Transactional
+	public boolean changePassword(int memberId, String oldPassword, String newPassword) {
+		Optional<Member> memberOpt = memberRepo.findById(memberId);
+		if (memberOpt.isEmpty()) return false;
+		
+		Member m = memberOpt.get();
+		// 比對舊密碼 (目前是明文，所以直接 equals)
+		if (!m.getPassword().equals(oldPassword)) {
+			throw new RuntimeException("舊密碼輸入錯誤");
+		}
+		
+		// 檢查新密碼是否與舊密碼相同
+		if (oldPassword.equals(newPassword)) {
+			throw new RuntimeException("新密碼不能與舊密碼相同");
+		}
+		
+		// 更新新密碼
+		int result = memberRepo.updatePassword(memberId, newPassword);
+		return result > 0;
+	}
+
+	// 11. 忘記密碼 — 驗證身份後重設密碼
 	@Transactional
 	public boolean resetPassword(String username, String email, String birthday, String newPassword) {
 		// 驗證身份：帳號 + Email + 生日 三者必須都正確
@@ -146,7 +168,23 @@ public class MemberService {
 		return result > 0;
 	}
 
-	// 11. Google 第三方登入
+	// 11. 查詢帳號 + Email 是否匹配（用於發送驗證碼前的檢查）
+	public Optional<Member> findByUsernameAndEmail(String username, String email) {
+		return memberRepo.findByUsernameAndEmail(username, email);
+	}
+
+	// 12. 使用驗證碼重設密碼（只需帳號 + Email）
+	@Transactional
+	public boolean resetPasswordByEmail(String username, String email, String newPassword) {
+		Optional<Member> member = memberRepo.findByUsernameAndEmail(username, email);
+		if (member.isEmpty()) {
+			return false;
+		}
+		int result = memberRepo.updatePassword(member.get().getMemberId(), newPassword);
+		return result > 0;
+	}
+
+	// 13. Google 第三方登入
 	@Transactional
 	public Member googleLogin(String googleId, String email, String fullName, String pictureUrl) {
 		// 1. 先用 googleId 找看看有沒有綁定過的會員

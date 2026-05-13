@@ -26,6 +26,9 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
     Optional<Member> findByGoogleId(String googleId);
     Optional<Member> findByEmail(String email);
 
+    // 忘記密碼 - 帳號+Email 查詢
+    Optional<Member> findByUsernameAndEmail(String username, String email);
+
     // 3. 登入時間
     @Modifying
     @Transactional

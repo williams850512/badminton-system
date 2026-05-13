@@ -96,6 +96,12 @@
             <version>2.2.0</version>
         </dependency>
 
+        <!-- Spring Boot Mail (寄送驗證碼) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- JWT (jjwt) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

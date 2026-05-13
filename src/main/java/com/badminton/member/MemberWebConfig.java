@@ -24,6 +24,8 @@ public class MemberWebConfig implements WebMvcConfigurer {
                     "/api/members/register",
                     "/api/members/logout",
                     "/api/members/reset-password",
+                    "/api/members/send-verification-code",
+                    "/api/members/google-login",
                     "/api/members/search",  // 後台搜尋會員功能需要
                     "/css/**", "/js/**", "/images/**", "/lib/**" // 放行靜態資源
                 );
