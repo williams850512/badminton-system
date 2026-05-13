@@ -21,13 +21,15 @@ public interface AdminRepository extends JpaRepository<Admin, Integer> {
     // 2. isAdminExists (帳號重複檢查)
     boolean existsByUsername(String username);
 
-    // 3. searchAdmins (ID、帳號、姓名、電話、信箱 5 欄位模糊搜尋)
+    // 3. searchAdmins (支援 ID、帳號、姓名、電話、信箱、生日、狀態模糊搜尋)
     @Query("SELECT a FROM Admin a WHERE " +
            "CAST(a.adminId AS string) LIKE %:kw% OR " +
            "a.username LIKE %:kw% OR " +
            "a.fullName LIKE %:kw% OR " +
            "a.phone LIKE %:kw% OR " +
-           "a.email LIKE %:kw% " +
+           "a.email LIKE %:kw% OR " +
+           "CAST(a.birthday AS string) LIKE %:kw% OR " +
+           "CAST(a.status AS string) LIKE %:kw% " +
            "ORDER BY a.adminId ASC")
     List<Admin> searchAdmins(@Param("kw") String keyword);
 
