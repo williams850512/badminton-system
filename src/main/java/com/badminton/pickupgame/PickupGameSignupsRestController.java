@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -49,6 +50,20 @@ public class PickupGameSignupsRestController {
 	public void delete(@PathVariable Integer id) {
 		signupsService.deleteById(id);
 	}
+	
+	//專門處理api的controller
+	@RestController
+	@RequestMapping("/api")
+	public class PickupGameApiController{
+		@Autowired 
+		PickupGamesService pickupGamesService;
+		
+		@GetMapping("/pickupgames")
+		public List<PickupGames>getAllPickupGames(){
+			return pickupGamesService.findAll();
+		}
+	}
+
 	
 	
 }
