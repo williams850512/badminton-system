@@ -27,4 +27,8 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
 	
 	List<Booking> findAllByOrderByBookingDateDescStartTimeDesc();
 
+	// 查詢某會員在指定日期之後（含）且狀態為已確認的預約
+	List<Booking> findByMember_MemberIdAndBookingDateGreaterThanEqualAndStatusOrderByBookingDateAscStartTimeAsc(
+			int memberId, LocalDate fromDate, BookingStatus status);
+
 }

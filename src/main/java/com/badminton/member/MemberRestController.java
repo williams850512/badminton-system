@@ -250,4 +250,41 @@ public class MemberRestController {
         }
         return ResponseEntity.badRequest().body(Map.of("message", "重設失敗，請確認帳號與信箱是否正確"));
     }
+
+    // 9. 上傳會員頭像
+    @PostMapping("/upload-avatar")
+    public ResponseEntity<?> uploadAvatar(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            HttpServletRequest request) {
+        Integer userId = (Integer) request.getAttribute("jwtUserId");
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "請重新登入"));
+        }
+
+        try {
+            // 建立上傳目錄（使用絕對路徑）
+            java.io.File dir = new java.io.File("./uploads/members").getAbsoluteFile();
+            if (!dir.exists()) dir.mkdirs();
+
+            // 產生唯一檔名
+            String ext = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
+            String fileName = "member_" + userId + "_" + System.currentTimeMillis() + ext;
+
+            // 儲存檔案（使用絕對路徑）
+            java.io.File dest = new java.io.File(dir, fileName);
+            file.transferTo(dest.getAbsoluteFile());
+
+            // 更新 DB 的 profilePicture 欄位
+            String imageUrl = "/uploads/members/" + fileName;
+            memberService.getMemberById(userId).ifPresent(m -> {
+                m.setProfilePicture(imageUrl);
+                memberService.updateMember(m);
+            });
+
+            return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "上傳失敗：" + e.getMessage()));
+        }
+    }
 }

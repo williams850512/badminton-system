@@ -90,4 +90,10 @@ public class BookingService {
 	    );
 	}
 
+	// 查詢某會員未來已確認的預約（給前台「發起揪團」下拉選單用）
+	public List<Booking> findMyUpcomingBookings(int memberId) {
+		return bookingRepo.findByMember_MemberIdAndBookingDateGreaterThanEqualAndStatusOrderByBookingDateAscStartTimeAsc(
+				memberId, LocalDate.now(), BookingStatus.CONFIRMED);
+	}
+
 }

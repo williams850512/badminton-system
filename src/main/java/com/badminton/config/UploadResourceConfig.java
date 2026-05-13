@@ -23,5 +23,10 @@ public class UploadResourceConfig implements WebMvcConfigurer {
         // 將 /uploads/products/** URL 映射到實體檔案目錄
         registry.addResourceHandler("/uploads/products/**")
                 .addResourceLocations(absolutePath);
+
+        // 將 /uploads/members/** URL 映射到會員頭像目錄
+        String memberUploadPath = new java.io.File("./uploads/members").getAbsoluteFile().toURI().toString();
+        registry.addResourceHandler("/uploads/members/**")
+                .addResourceLocations(memberUploadPath);
     }
 }

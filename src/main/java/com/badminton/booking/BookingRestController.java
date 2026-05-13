@@ -62,4 +62,14 @@ public class BookingRestController {
 	    return bookingService.findByCourtAndDate(courtId, date);
 	}
 
+	// GET /api/bookings/my-bookings — 取得自己未來已確認的預約（前台發起揪團用）
+	@GetMapping("/my-bookings")
+	public org.springframework.http.ResponseEntity<?> getMyBookings(jakarta.servlet.http.HttpServletRequest request) {
+		Integer userId = (Integer) request.getAttribute("jwtUserId");
+		if (userId == null) {
+			return org.springframework.http.ResponseEntity.status(401).body("請先登入");
+		}
+		return org.springframework.http.ResponseEntity.ok(bookingService.findMyUpcomingBookings(userId));
+	}
+
 }

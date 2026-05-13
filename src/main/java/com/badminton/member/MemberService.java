@@ -84,7 +84,7 @@ public class MemberService {
 			existing.setEmail(m.getEmail());
 			existing.setGender(m.getGender());
 			existing.setBirthday(m.getBirthday());
-			existing.setProfilePicture(m.getProfilePicture());
+			existing.setProfilePicture(m.getProfilePicture() != null ? m.getProfilePicture() : existing.getProfilePicture());
 			// 不更新 username, password, status, membershipLevel 等敏感欄位
 			return memberRepo.save(existing);
 		}).orElse(null);
@@ -212,8 +212,10 @@ public class MemberService {
 		// 3. 如果連 Email 都沒註冊過，直接幫他自動註冊一個新會員
 		Member newMember = new Member();
 		newMember.setUsername("g_" + googleId.substring(0, Math.min(googleId.length(), 10))); // 隨機產生一個 username
+		newMember.setPassword("GOOGLE_AUTH_" + System.currentTimeMillis()); // Google 用戶不需要密碼，給一個隨機值
 		newMember.setEmail(email);
 		newMember.setFullName(fullName);
+		newMember.setPhone("待填寫"); // Google 帳號沒有手機號碼，預設值
 		newMember.setProfilePicture(pictureUrl);
 		newMember.setAuthProvider("GOOGLE");
 		newMember.setGoogleId(googleId);
