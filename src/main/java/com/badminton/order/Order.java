@@ -50,6 +50,24 @@ public class Order {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    // ===== 進度時間點（各狀態變更的時間戳記） =====
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "shipped_at")
+    private LocalDateTime shippedAt;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     // 在建構(儲存)時自動填入當前時間
     @PrePersist   // <- 在 JPA save() 之前自動執行
     protected void onCreate() {
