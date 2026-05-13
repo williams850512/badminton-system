@@ -12,11 +12,11 @@ public class MemberWebConfig implements WebMvcConfigurer {
     @Autowired
     private MemberAuthInterceptor memberAuthInterceptor;
 
-    // 1. 註冊攔截器
+    // 1. 註�??�截??
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(memberAuthInterceptor)
-                .addPathPatterns("/api/admins/**", "/api/members/**") // 攔截所有後端 API
+                .addPathPatterns("/api/admins/**", "/api/members/**") // ?�截?�?��?�?API
                 .excludePathPatterns(
                     "/api/admins/login",
                     "/api/admins/logout",
@@ -31,14 +31,14 @@ public class MemberWebConfig implements WebMvcConfigurer {
                 );
     }
 
-    // 2. 跨域配置
+    // 2. 跨�??�置
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**") // 針對所有 API 路徑
-                .allowedOriginPatterns("*") // 允許所有來源 (開發環境建議，上線再改特定域名)
+        registry.addMapping("/api/**") // ?��??�??API 路�?
+                .allowedOriginPatterns("*") // ?�許?�?��?�?(?�發?��?建議，�?線�??�特定�???
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(true) // 允許攜帶 Cookie (Session 驗證必備)
+                .allowCredentials(true) // ?�許?�帶 Cookie (Session 驗�?必�?)
                 .maxAge(3600);
     }
 }
