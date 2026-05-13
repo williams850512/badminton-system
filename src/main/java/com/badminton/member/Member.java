@@ -59,6 +59,12 @@ public class Member  {
     @Column(name = "gender")
     private String gender;
 
+    @Column(name = "auth_provider", length = 20)
+    private String authProvider = "LOCAL";
+
+    @Column(name = "google_id", unique = true)
+    private String googleId;
+
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthday;
 
