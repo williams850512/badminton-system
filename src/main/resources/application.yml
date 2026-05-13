@@ -33,6 +33,19 @@ spring:
   thymeleaf:
     cache: false
 
+  # ===== Gmail SMTP (寄送驗證碼) =====
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ygtq.badminton@gmail.com
+    password: naihwtapqqhfzcip
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 server:
   port: 8080
 
