@@ -22,6 +22,13 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
     // 2. 查重
     boolean existsByUsername(String username);
 
+    // Google 第三方登入相關
+    Optional<Member> findByGoogleId(String googleId);
+    Optional<Member> findByEmail(String email);
+
+    // 忘記密碼 - 帳號+Email 查詢
+    Optional<Member> findByUsernameAndEmail(String username, String email);
+
     // 3. 登入時間
     @Modifying
     @Transactional
@@ -52,4 +59,19 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
     // getMemberById -> 直接呼叫 .findById(id)
     // deleteMember  -> 直接呼叫 .deleteById(id)
     // register/update -> 直接呼叫 .save(member)
+
+    // 6. 忘記密碼 — 驗證身份（帳號 + Email + 生日）
+    @Query(value = "SELECT * FROM Members WHERE username = :un AND email = :email AND birthday = :birthday",
+           nativeQuery = true)
+    Optional<Member> findByUsernameAndEmailAndBirthday(
+            @Param("un") String username,
+            @Param("email") String email,
+            @Param("birthday") String birthday);
+
+    // 7. 重設密碼
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE Members SET password = :pwd, updated_at = GETDATE() WHERE member_id = :id",
+           nativeQuery = true)
+    int updatePassword(@Param("id") int memberId, @Param("pwd") String newPassword);
 }

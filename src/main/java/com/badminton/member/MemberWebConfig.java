@@ -12,30 +12,33 @@ public class MemberWebConfig implements WebMvcConfigurer {
     @Autowired
     private MemberAuthInterceptor memberAuthInterceptor;
 
-    // 1. è¨»å??”æˆª??
+    // 1. è¨»ï¿½??ï¿½æˆª??
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(memberAuthInterceptor)
-                .addPathPatterns("/api/admins/**", "/api/members/**") // ?”æˆª?€?‰å?ç«?API
+                .addPathPatterns("/api/admins/**", "/api/members/**") // ?ï¿½æˆª?ï¿½?ï¿½ï¿½?ï¿½?API
                 .excludePathPatterns(
                     "/api/admins/login",
                     "/api/admins/logout",
                     "/api/members/login", 
                     "/api/members/register",
                     "/api/members/logout",
-                    "/api/members/search",  // å¾Œå°?œå??ƒå“¡?Ÿèƒ½?€è¦?
-                    "/css/**", "/js/**", "/images/**", "/lib/**" // ?¾è??œæ?è³‡æ?
+                    "/api/members/reset-password",
+                    "/api/members/send-verification-code",
+                    "/api/members/google-login",
+                    "/api/members/search",  // å¾Œå°æœå°‹æœƒå“¡åŠŸèƒ½éœ€è¦
+                    "/css/**", "/js/**", "/images/**", "/lib/**" // æ”¾è¡Œéœæ…‹è³‡æº
                 );
     }
 
-    // 2. è·¨å??ç½®
+    // 2. è·¨ï¿½??ï¿½ç½®
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**") // ?å??€??API è·¯å?
-                .allowedOriginPatterns("*") // ?è¨±?€?‰ä?æº?(?‹ç™¼?°å?å»ºè­°ï¼Œä?ç·šå??¹ç‰¹å®šå???
+        registry.addMapping("/api/**") // ?ï¿½ï¿½??ï¿½??API è·¯ï¿½?
+                .allowedOriginPatterns("*") // ?ï¿½è¨±?ï¿½?ï¿½ï¿½?ï¿½?(?ï¿½ç™¼?ï¿½ï¿½?å»ºè­°ï¼Œï¿½?ç·šï¿½??ï¿½ç‰¹å®šï¿½???
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(true) // ?è¨±?œå¸¶ Cookie (Session é©—è?å¿…å?)
+                .allowCredentials(true) // ?ï¿½è¨±?ï¿½å¸¶ Cookie (Session é©—ï¿½?å¿…ï¿½?)
                 .maxAge(3600);
     }
 }

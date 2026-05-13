@@ -1,9 +1,11 @@
 package com.badminton.booking;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,6 +52,14 @@ public class BookingRestController {
 	public List<Booking> search(@RequestParam(required = false) String keyword){
 		return bookingService.searchByKeyword(keyword);
 		
+	}
+	
+	// GET /api/bookings/court/5/date/2026-05-15
+	@GetMapping("/court/{courtId}/date/{date}")
+	public List<Booking> findByCourtAndDate(
+	        @PathVariable Integer courtId,
+	        @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+	    return bookingService.findByCourtAndDate(courtId, date);
 	}
 
 }
