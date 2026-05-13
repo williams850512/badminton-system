@@ -1,4 +1,4 @@
-package com.badminton.member;
+﻿package com.badminton.member;
 
 import com.badminton.admin.Admin;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,11 +20,11 @@ public class MemberAuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // 2. 後台管理員權限驗證
+        // 2. 後台管理員權限
         if (uri.contains("/api/admin")) {
             Admin admin = (session != null) ? (Admin) session.getAttribute("adminUser") : null;
             if (admin == null) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "管理員權限不足，請重新登入");
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "管理員權限不足，請先登入");
                 return false;
             }
             return true;

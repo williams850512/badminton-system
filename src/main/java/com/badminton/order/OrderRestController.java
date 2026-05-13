@@ -1,5 +1,8 @@
-package com.badminton.order;
+﻿package com.badminton.order;
 
+import com.badminton.admin.Admin;
+import com.badminton.member.Member;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,36 +17,91 @@ public class OrderRestController {
 
     private final OrderService orderService;
 
-    // GET /api/orders          → 取得所有訂單（後台用）
-    // GET /api/orders?memberId=3 → 取得某會員的訂單（前台用）
-    @GetMapping
-    public List<Order> findAll(@RequestParam(required = false) Integer memberId) {
-        if (memberId != null) {
-            return orderService.getOrdersByMemberId(memberId);
-        }
-        return orderService.getAllOrders();
+    // ========================================
+    // 🔒 權限檢查工具方法
+    // ========================================
+
+    /** 從 Session 取得管理員（未登入回傳 null） */
+    private Admin getAdmin(HttpSession session) {
+        return (session != null) ? (Admin) session.getAttribute("adminUser") : null;
     }
 
-    // GET /api/orders/3 → 取得單筆訂單
+    /** 從 Session 取得會員（未登入回傳 null） */
+    private Member getMember(HttpSession session) {
+        return (session != null) ? (Member) session.getAttribute("user") : null;
+    }
+
+    // ========================================
+    // 訂單 CRUD
+    // ========================================
+
+    // GET /api/orders          → 全部訂單（後台用，需管理員權限）
+    // GET /api/orders?memberId=3 → 該會員的訂單（前台用，需本人或管理員）
+    @GetMapping
+    public ResponseEntity<?> findAll(@RequestParam(required = false) Integer memberId,
+                                     HttpSession session) {
+        Admin admin = getAdmin(session);
+        Member member = getMember(session);
+
+        if (memberId != null) {
+            // 前台查詢：驗證是否為本人或管理員
+            if (admin != null) {
+                return ResponseEntity.ok(orderService.getOrdersByMemberId(memberId));
+            }
+            if (member != null && member.getMemberId().equals(memberId)) {
+                return ResponseEntity.ok(orderService.getOrdersByMemberId(memberId));
+            }
+            // 未登入或查詢別人的訂單 → 拒絕
+            return ResponseEntity.status(401).body("請先登入會員");
+        }
+
+        // 無 memberId = 後台列出全部訂單（需管理員）
+        if (admin != null) {
+            return ResponseEntity.ok(orderService.getAllOrders());
+        }
+        return ResponseEntity.status(403).body("需要管理員權限");
+    }
+
+    // GET /api/orders/3 → 查單一訂單
     @GetMapping("/{id}")
-    public ResponseEntity<Order> findById(@PathVariable Integer id) {
+    public ResponseEntity<?> findById(@PathVariable Integer id, HttpSession session) {
         Order order = orderService.getOrderById(id);
         if (order == null) {
             return ResponseEntity.notFound().build();
         }
+
+        Admin admin = getAdmin(session);
+        Member member = getMember(session);
+
+        // 管理員可看任何訂單，會員只能看自己的
+        if (admin != null) {
+            return ResponseEntity.ok(order);
+        }
+        if (member != null && order.getMember() != null
+                && member.getMemberId().equals(order.getMember().getMemberId())) {
+            return ResponseEntity.ok(order);
+        }
+        return ResponseEntity.status(403).body("無權限查看此訂單");
+    }
+
+    // POST /api/orders → 建立訂單 (Body: JSON)
+    @PostMapping
+    public ResponseEntity<?> create(@RequestBody Order order, HttpSession session) {
+        Admin admin = getAdmin(session);
+        Member member = getMember(session);
+
+        // 需要登入（管理員或會員皆可建立訂單）
+        if (admin == null && member == null) {
+            return ResponseEntity.status(401).body("請先登入");
+        }
+
+        orderService.saveOrder(order);
         return ResponseEntity.ok(order);
     }
 
-    // POST /api/orders → 新增訂單 (Body: JSON)
-    @PostMapping
-    public Order create(@RequestBody Order order) {
-        orderService.saveOrder(order);
-        return order;
-    }
-
-    // PUT /api/orders/3 → 更新訂單 (只更新 status, paymentType, note)
+    // PUT /api/orders/3 → 更新訂單 (變更 status, paymentType, note)
     @PutMapping("/{id}")
-    public ResponseEntity<Order> update(@PathVariable Integer id, @RequestBody Order order) {
+    public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody Order order) {
         Order existing = orderService.getOrderById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
@@ -54,7 +112,7 @@ public class OrderRestController {
 
     // PATCH /api/orders/3/status → 變更訂單狀態
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Order> updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
         Order existing = orderService.getOrderById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
@@ -75,10 +133,30 @@ public class OrderRestController {
         return ResponseEntity.ok().build();
     }
 
-    // GET /api/orders/3/items → 取得某訂單的所有明細
+    // ========================================
+    // 訂單明細 CRUD
+    // ========================================
+
+    // GET /api/orders/3/items → 取得該訂單所有明細
     @GetMapping("/{orderId}/items")
-    public List<OrderItem> findItemsByOrderId(@PathVariable Integer orderId) {
-        return orderService.getItemsByOrderId(orderId);
+    public ResponseEntity<?> findItemsByOrderId(@PathVariable Integer orderId, HttpSession session) {
+        // 驗證：管理員可看任何訂單明細，會員只能看自己的訂單明細
+        Order order = orderService.getOrderById(orderId);
+        if (order == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Admin admin = getAdmin(session);
+        Member member = getMember(session);
+
+        if (admin != null) {
+            return ResponseEntity.ok(orderService.getItemsByOrderId(orderId));
+        }
+        if (member != null && order.getMember() != null
+                && member.getMemberId().equals(order.getMember().getMemberId())) {
+            return ResponseEntity.ok(orderService.getItemsByOrderId(orderId));
+        }
+        return ResponseEntity.status(403).body("無權限查看此訂單明細");
     }
 
     // GET /api/orders/3/items/5 → 取得單筆明細
@@ -94,10 +172,18 @@ public class OrderRestController {
 
     // POST /api/orders/3/items → 新增明細
     @PostMapping("/{orderId}/items")
-    public OrderItem createItem(@PathVariable Integer orderId, @RequestBody OrderItem item) {
+    public ResponseEntity<?> createItem(@PathVariable Integer orderId, @RequestBody OrderItem item,
+                                        HttpSession session) {
+        Admin admin = getAdmin(session);
+        Member member = getMember(session);
+
+        if (admin == null && member == null) {
+            return ResponseEntity.status(401).body("請先登入");
+        }
+
         item.setOrderId(orderId);
         orderService.saveOrderItem(item);
-        return item;
+        return ResponseEntity.ok(item);
     }
 
     // PUT /api/orders/3/items/5 → 更新明細
