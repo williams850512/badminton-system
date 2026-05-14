@@ -70,6 +70,10 @@ public class PickupGames {
 	@Column(name = "skill_level", nullable = false, length = 15)
 	private SkillLevel skillLevel = SkillLevel.ALL;
 
+	// 🌟 新增性別限制欄位
+	@Column(name = "required_gender", length = 10)
+	private String requiredGender = "ALL";
+
 	@Column(name = "fee_per_person", nullable = false)
 	private BigDecimal feePerPerson = BigDecimal.ZERO;
 
