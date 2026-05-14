@@ -72,4 +72,14 @@ public class BookingRestController {
 		return org.springframework.http.ResponseEntity.ok(bookingService.findMyUpcomingBookings(userId));
 	}
 
+	// GET /api/bookings/my-all-bookings — 取得自己的所有預約紀錄（會員中心用）
+	@GetMapping("/my-all-bookings")
+	public org.springframework.http.ResponseEntity<?> getMyAllBookings(jakarta.servlet.http.HttpServletRequest request) {
+		Integer userId = (Integer) request.getAttribute("jwtUserId");
+		if (userId == null) {
+			return org.springframework.http.ResponseEntity.status(401).body("請先登入");
+		}
+		return org.springframework.http.ResponseEntity.ok(bookingService.findAllByMemberId(userId));
+	}
+
 }
