@@ -53,3 +53,11 @@ server:
 app:
   upload:
     dir: ./uploads/products
+
+# ===== LINE Pay Sandbox =====
+linepay:
+  channel-id: "2010086842"
+  channel-secret: "547115f3127c7468277b10cb22c22f11"
+  api-url: "https://sandbox-api-pay.line.me"
+  confirm-url: "http://localhost:5173/payment/linepay/confirm"
+  cancel-url: "http://localhost:5173/payment/linepay/cancel"
