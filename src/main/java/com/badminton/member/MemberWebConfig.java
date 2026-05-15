@@ -18,10 +18,8 @@ public class MemberWebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/admins/**", "/api/members/**", "/api/bookings/my-bookings") // 攔截需要 JWT 的 API
                 .excludePathPatterns(
                     "/api/admins/login",
-                    "/api/admins/logout",
                     "/api/members/login", 
                     "/api/members/register",
-                    "/api/members/logout",
                     "/api/members/reset-password",
                     "/api/members/send-verification-code",
                     "/api/members/google-login",

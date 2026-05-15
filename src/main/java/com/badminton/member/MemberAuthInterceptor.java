@@ -27,49 +27,51 @@ public class MemberAuthInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String uri = request.getRequestURI();
 
-        // 1. 開放路徑（登入、註冊、登出不需要 Token）
-        if (uri.contains("/login") || uri.contains("/register") || uri.contains("/logout") || uri.contains("/reset-password") || uri.equals("/")) {
-            return true;
-        }
-
-        // 2. OPTIONS 預檢請求直接放行（CORS 需要）
+        // 1. OPTIONS 預檢請求直接放行（CORS 需要）
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
 
-        // 3. 從 Header 取出 JWT
+        // 2. 嘗試從 Header 取出 JWT 並解析（不強制要求，供開放路徑讀取身份使用）
         String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "請先登入（缺少 Token）");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7); // 去掉 "Bearer "
+            try {
+                Claims claims = jwtUtil.parseToken(token);
+                setAuthAttributes(request, claims);
+            } catch (io.jsonwebtoken.ExpiredJwtException e) {
+                // 如果 Token 過期，仍嘗試從 e.getClaims() 獲取資訊，這對記錄「登出」日誌很有用
+                setAuthAttributes(request, e.getClaims());
+            } catch (Exception e) {
+                // 其他 Token 無效情況
+            }
+        }
+
+        // 3. 開放路徑（登入、註冊、登出不需要 Token）
+        if (uri.contains("/login") || uri.contains("/register") || uri.contains("/logout") || uri.contains("/reset-password") || uri.equals("/")) {
+            return true;
+        }
+
+        // 4. 需要驗證的 API：檢查是否有成功解析出使用者
+        if (request.getAttribute("jwtUserId") == null) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "請先登入或 Token 已過期");
             return false;
         }
 
-        String token = authHeader.substring(7); // 去掉 "Bearer "
-
-        // 4. 驗證 JWT
-        try {
-            Claims claims = jwtUtil.parseToken(token);
-
-            Integer userId = claims.get("userId", Integer.class);
-            String username = claims.getSubject();
-            String role = claims.get("role", String.class);
-
-            // 存入 request attribute（Controller 可用）
-            request.setAttribute("jwtUserId", userId);
-            request.setAttribute("jwtUsername", username);
-            request.setAttribute("jwtRole", role);
-
-            // 存入 AuthHolder（Service 層可用）
-            AuthHolder.set(userId, username, role);
-
-        } catch (Exception e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token 無效或已過期，請重新登入");
-            return false;
-        }
-
-        // 5. 後台 API 權限檢查：/api/admin/** 需要 MANAGER 或 STAFF 角色
-        if (uri.contains("/api/admin")) {
+        // 5. 後台 API 權限檢查：/api/admins/**
+        if (uri.contains("/api/admins")) {
             String role = (String) request.getAttribute("jwtRole");
+
+            // 職員管理與操作日誌：僅限 MANAGER
+            if (uri.contains("/api/admins/list") || uri.contains("/api/admins/add") || 
+                uri.contains("/api/admins/logs") || uri.contains("/api/admins/search")) {
+                if (!"MANAGER".equals(role)) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "管理者權限不足，僅限經理訪問");
+                    return false;
+                }
+            }
+
+            // 一般後台權限：需要 MANAGER 或 STAFF
             if (!"MANAGER".equals(role) && !"STAFF".equals(role)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN, "管理員權限不足");
                 return false;
@@ -83,5 +85,16 @@ public class MemberAuthInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         // 請求結束後清除 ThreadLocal，避免 Thread 池重用導致資料洩漏
         AuthHolder.clear();
+    }
+
+    private void setAuthAttributes(HttpServletRequest request, Claims claims) {
+        Integer userId = claims.get("userId", Integer.class);
+        String username = claims.getSubject();
+        String role = claims.get("role", String.class);
+
+        request.setAttribute("jwtUserId", userId);
+        request.setAttribute("jwtUsername", username);
+        request.setAttribute("jwtRole", role);
+        AuthHolder.set(userId, username, role);
     }
 }
