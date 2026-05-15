@@ -3,6 +3,7 @@ package com.badminton.announcement;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.badminton.admin.Admin;
@@ -13,10 +14,10 @@ public class AnnouncementService {
 	@Autowired
 	private AnnouncementRepository aRepo;
 	
-	// ===== 查詢 =====
+	// ===== 查詢（按建立時間降序，最新的在前面） =====
 	
 	public List<Announcement> findAll(){
-		return aRepo.findAll();
+		return aRepo.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
 	}
 	
 	public Announcement findById(Integer id) {
@@ -63,6 +64,16 @@ public class AnnouncementService {
 		// 2. 只修改 status 欄位
 		announcement.setStatus(newStatus);
 		// 3. 存回資料庫（Hibernate 會自動產生 UPDATE SQL）
+		return aRepo.save(announcement);
+	}
+
+	// ===== 瀏覽次數 +1 =====
+	public Announcement incrementViewCount(Integer id) {
+		Announcement announcement = aRepo.findById(id)
+				.orElseThrow(() -> new RuntimeException("找不到公告 ID:" + id));
+		announcement.setViewCount(
+				(announcement.getViewCount() == null ? 0 : announcement.getViewCount()) + 1
+		);
 		return aRepo.save(announcement);
 	}
 

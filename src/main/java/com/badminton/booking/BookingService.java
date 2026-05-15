@@ -96,4 +96,9 @@ public class BookingService {
 				memberId, LocalDate.now(), BookingStatus.CONFIRMED);
 	}
 
+	// 查詢某會員的所有預約紀錄（會員中心用，按日期降序）
+	public List<Booking> findAllByMemberId(int memberId) {
+		return bookingRepo.findByMember_MemberIdOrderByBookingDateDescStartTimeDesc(memberId);
+	}
+
 }
