@@ -59,6 +59,12 @@ public class Product {
     @Column(name = "status", nullable = false, length = 20)
     private ProductStatus status = ProductStatus.ACTIVE;
 
+    @Column(name = "tag", columnDefinition = "NVARCHAR(10)")
+    private String marketingTag;
+
+    @Column(name = "spec", columnDefinition = "NVARCHAR(10)")
+    private String spec;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
