@@ -60,7 +60,7 @@ public class Product {
     private ProductStatus status = ProductStatus.ACTIVE;
 
     @Column(name = "tag", columnDefinition = "NVARCHAR(10)")
-    private String tag;
+    private String marketingTag;
 
     @Column(name = "spec", columnDefinition = "NVARCHAR(10)")
     private String spec;
