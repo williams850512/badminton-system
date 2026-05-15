@@ -16,6 +16,9 @@ public class PickupGameSignupsService {
 	@Autowired
 	private PickupGameRepository pickupGameRepo;
 
+	@Autowired
+	private PickupGameEmailService pickupGameEmailService;
+
 	// ===== 查詢 =====
 
 	/** 查詢全部報名紀錄 */
@@ -68,19 +71,30 @@ public class PickupGameSignupsService {
 
 	// ===== 刪除 =====
 
-	/** 根據 ID 刪除報名紀錄，同時更新揪團人數與狀態 */
+	/** 根據 ID 刪除報名紀錄，同時更新揪團人數與狀態，並寄送移除通知 Email */
 	public void deleteById(Integer id) {
-		// ① 先查出報名紀錄，取得關聯的揪團
+		// ① 先查出報名紀錄，取得關聯的揪團與被移除的球友
 		PickupGameSignups signup = signupsRepo.findById(id)
 				.orElseThrow(() -> new RuntimeException("找不到報名紀錄 ID: " + id));
 
 		PickupGames game = signup.getGame();
+
+		// 🌟 先暫存被移除球友的資料（刪除後就拿不到了）
+		String memberName = signup.getMember() != null ? signup.getMember().getFullName() : "球友";
+		String memberEmail = signup.getMember() != null ? signup.getMember().getEmail() : null;
+		String hostName = game.getHost() != null ? game.getHost().getFullName() : "團主";
+		String gameInfo = game.getGameDate() + " " + game.getStartTime() + "-" + game.getEndTime();
 
 		// ② 刪除報名紀錄
 		signupsRepo.deleteById(id);
 
 		// ③ 動態計算人數並同步揪團狀態
 		syncGamePlayerCount(game);
+
+		// 🌟 ④ 寄送移除通知 Email（刪除成功後才寄，避免誤發）
+		if (memberEmail != null && !memberEmail.trim().isEmpty()) {
+			pickupGameEmailService.sendRemovalNotice(memberEmail, memberName, gameInfo, hostName);
+		}
 	}
 	
 	// ===== 共用：同步揪團人數與狀態 =====

@@ -42,6 +42,10 @@ public class PickupGames {
 	@JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
 	private Member host;
 
+	// 🌟 綁定場地預約 ID（有預約才能發起揪團）
+	@Column(name = "booking_id")
+	private Integer bookingId;
+
 	// 多筆揪團可以在「同一個」場地（Court）上舉行
 	@ManyToOne
 	@JoinColumn(name = "court_id", nullable = false)
@@ -69,6 +73,10 @@ public class PickupGames {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "skill_level", nullable = false, length = 15)
 	private SkillLevel skillLevel = SkillLevel.ALL;
+
+	// 🌟 新增性別限制欄位
+	@Column(name = "required_gender", length = 10)
+	private String requiredGender = "ALL";
 
 	@Column(name = "fee_per_person", nullable = false)
 	private BigDecimal feePerPerson = BigDecimal.ZERO;

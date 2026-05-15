@@ -16,6 +16,9 @@ public class PickupGamesService {
 	@Autowired
 	private PickupGameSignupsRepository signupsRepo;
 
+	@Autowired
+	private PickupGameEmailService pickupGameEmailService;
+
 	// ===== 查詢 =====
 
 	/** 查詢全部揪團（同時校正 currentPlayers，確保與報名紀錄一致） */
@@ -46,6 +49,38 @@ public class PickupGamesService {
 	/** 根據 ID 刪除揪團 */
 	public void deleteById(Integer id) {
 		pickupGameRepo.deleteById(id);
+	}
+
+	/** 取消揪團並自動發信通知球友 */
+	public PickupGames cancelGame(Integer gameId) {
+		PickupGames game = findById(gameId);
+		
+		// 如果已經取消過了，就直接回傳
+		if (game.getStatus() == PickupGameStatus.CANCELLED) {
+			return game;
+		}
+
+		// 1. 更新狀態為已取消
+		game.setStatus(PickupGameStatus.CANCELLED);
+		PickupGames savedGame = pickupGameRepo.save(game);
+
+		// 2. 撈出所有已報名的球友 Email
+		List<PickupGameSignups> signups = signupsRepo.findByGame_GameId(gameId);
+		List<String> emails = signups.stream()
+				.filter(s -> s.getStatus() == SignupStatus.JOINED)
+				.filter(s -> s.getMember() != null && s.getMember().getEmail() != null)
+				.map(s -> s.getMember().getEmail())
+				.filter(email -> !email.trim().isEmpty())
+				.collect(java.util.stream.Collectors.toList());
+
+		// 3. 批次寄送取消通知信
+		if (!emails.isEmpty()) {
+			String hostName = game.getHost() != null ? game.getHost().getFullName() : "團主";
+			String gameInfo = game.getGameDate() + " " + game.getStartTime() + "-" + game.getEndTime();
+			pickupGameEmailService.sendCancellationNotice(emails, hostName, gameInfo);
+		}
+
+		return savedGame;
 	}
 
 	// ===== 私有方法：校正 currentPlayers =====

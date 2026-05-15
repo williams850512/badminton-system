@@ -1,8 +1,11 @@
 package com.badminton.pickupgame;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,6 +14,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.badminton.config.AuthHolder;
+import com.badminton.config.JwtUtil;
+import com.badminton.pickupgame.PickupGameEmailService;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/pickup-games")
@@ -21,6 +30,12 @@ public class PickupGameRestController {
 	
 	@Autowired
 	private PickupGameSignupsService signupsService;
+
+	@Autowired
+	private PickupGameEmailService pickupGameEmailService;
+
+	@Autowired
+	private JwtUtil jwtUtil;
 
 	// GET /api/pickup-games
 	@GetMapping
@@ -42,7 +57,65 @@ public class PickupGameRestController {
 
 	// PUT /api/pickup-games/3
 	@PutMapping("/{id}")
-	public PickupGames update(@PathVariable Integer id, @RequestBody PickupGames game) {
+	public PickupGames update(@PathVariable Integer id, @RequestBody PickupGames game, HttpServletRequest request) {
+		PickupGames oldGame = pickupGamesService.findById(id);
+
+		// 如果已經是取消狀態，且前端又傳來取消，直接忽略更新
+		if (oldGame.getStatus() == PickupGameStatus.CANCELLED && game.getStatus() == PickupGameStatus.CANCELLED) {
+			return oldGame;
+		}
+
+		// 若為「取消揪團」操作
+		if (oldGame.getStatus() != PickupGameStatus.CANCELLED && game.getStatus() == PickupGameStatus.CANCELLED) {
+			
+			// 從 Token 解析身分（因為此 API 沒有在 Interceptor 的攔截範圍內，所以手動解析）
+			Integer userId = null;
+			String role = null;
+			String authHeader = request.getHeader("Authorization");
+			System.out.println("======== CANCEL GAME DEBUG ========");
+			System.out.println("AuthHeader: " + authHeader);
+			
+			if (authHeader != null && authHeader.startsWith("Bearer ")) {
+				try {
+					Claims claims = jwtUtil.parseToken(authHeader.substring(7));
+					userId = claims.get("userId", Integer.class);
+					role = claims.get("role", String.class);
+					System.out.println("Parsed from JWT - userId: " + userId + ", role: " + role);
+				} catch (Exception e) {
+					System.out.println("JWT Parse Exception: " + e.getMessage());
+					e.printStackTrace();
+				}
+			}
+
+			// 也可以回退到 AuthHolder (防萬一未來加入了 Interceptor)
+			if (userId == null && AuthHolder.isLoggedIn()) {
+				userId = AuthHolder.getUserId();
+				role = AuthHolder.getRole();
+				System.out.println("Got from AuthHolder - userId: " + userId + ", role: " + role);
+			}
+
+			// 安全性檢查：只有後台管理員，或原團主可以取消
+			boolean isAuthorized = false;
+			System.out.println("Game Host ID: " + (oldGame.getHost() != null ? oldGame.getHost().getMemberId() : "NULL"));
+			
+			if ("MANAGER".equals(role) || "STAFF".equals(role)) {
+				isAuthorized = true; // 管理員放行
+			} else if (userId != null && oldGame.getHost() != null 
+					&& userId.equals(oldGame.getHost().getMemberId())) {
+				isAuthorized = true; // 原團主放行
+			}
+
+			System.out.println("isAuthorized: " + isAuthorized);
+			System.out.println("===================================");
+
+			if (!isAuthorized) {
+				throw new RuntimeException("權限不足：您不是該場揪團的團主或管理員");
+			}
+
+			return pickupGamesService.cancelGame(id);
+		}
+
+		// 一般更新操作
 		game.setGameId(id);
 		return pickupGamesService.save(game);
 	}
@@ -57,5 +130,45 @@ public class PickupGameRestController {
 	@GetMapping("/{gameId}/signups")
 	public List<PickupGameSignups> findSignupsByGameId(@PathVariable Integer gameId){
 		return signupsService.findByGameId(gameId);
+	}
+
+	// ============================
+	// 🌟 POST /api/pickup-games/{gameId}/broadcast
+	// 團主群發公告 Email 給所有已報名球友
+	// ============================
+	@PostMapping("/{gameId}/broadcast")
+	public ResponseEntity<Map<String, Object>> broadcast(
+			@PathVariable Integer gameId,
+			@RequestBody Map<String, String> body) {
+
+		String message = body.get("message");
+		if (message == null || message.trim().isEmpty()) {
+			return ResponseEntity.badRequest()
+					.body(Map.of("success", false, "error", "公告內容不可為空"));
 		}
+
+		// ① 查出揪團資訊（用於信件內文的球局摘要）
+		PickupGames game = pickupGamesService.findById(gameId);
+		String hostName = game.getHost() != null ? game.getHost().getFullName() : "團主";
+		String gameInfo = game.getGameDate() + " " + game.getStartTime() + "-" + game.getEndTime();
+
+		// ② 撈出所有已報名球友的 Email（過濾空值）
+		List<PickupGameSignups> signups = signupsService.findByGameId(gameId);
+		List<String> emails = signups.stream()
+				.filter(s -> s.getMember() != null && s.getMember().getEmail() != null)
+				.map(s -> s.getMember().getEmail())
+				.filter(email -> !email.trim().isEmpty())
+				.collect(Collectors.toList());
+
+		if (emails.isEmpty()) {
+			return ResponseEntity.ok(
+					Map.of("success", true, "sent", 0, "message", "目前沒有已報名的球友 Email"));
+		}
+
+		// ③ 群發 Email
+		int sent = pickupGameEmailService.sendBroadcast(emails, hostName, gameInfo, message.trim());
+
+		return ResponseEntity.ok(
+				Map.of("success", true, "sent", sent, "total", emails.size()));
+	}
 }
