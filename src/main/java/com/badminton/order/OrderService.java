@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.badminton.product.Product;
 import com.badminton.product.ProductRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -101,10 +102,23 @@ public class OrderService {
     }
 
     // 更新訂單 (對應原版 V2 的 OrderDAO.updateOrder 方法)
-    // 只更新 status, paymentType, note 三個欄位
+    // 更新 status, paymentType, note，並在狀態變更時自動記錄時間點
     public void updateOrder(Integer id, OrderStatus status, PaymentType paymentType, String note) {
         Order order = orderRepository.findById(id).orElse(null);
         if (order != null) {
+            // ★ 狀態變更時，自動記錄對應的時間點
+            OrderStatus oldStatus = order.getStatus();
+            if (oldStatus != status) {
+                LocalDateTime now = LocalDateTime.now();
+                switch (status) {
+                    case PAID      -> order.setPaidAt(now);
+                    case SHIPPED   -> order.setShippedAt(now);
+                    case COMPLETED -> order.setCompletedAt(now);
+                    case CANCELLED -> order.setCancelledAt(now);
+                    default -> {}  // UNPAID 不需要額外時間（用 created_at）
+                }
+            }
+
             order.setStatus(status);
             order.setPaymentType(paymentType);
             order.setNote(note);
