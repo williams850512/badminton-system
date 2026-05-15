@@ -15,7 +15,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.badminton.admin.Admin;
+import com.badminton.member.Member;
 import com.badminton.pickupgame.PickupGameEmailService;
+import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/api/pickup-games")
@@ -50,7 +53,31 @@ public class PickupGameRestController {
 
 	// PUT /api/pickup-games/3
 	@PutMapping("/{id}")
-	public PickupGames update(@PathVariable Integer id, @RequestBody PickupGames game) {
+	public PickupGames update(@PathVariable Integer id, @RequestBody PickupGames game, HttpSession session) {
+		PickupGames oldGame = pickupGamesService.findById(id);
+
+		// 若為「取消揪團」操作
+		if (oldGame.getStatus() != PickupGameStatus.CANCELLED && game.getStatus() == PickupGameStatus.CANCELLED) {
+			// 安全性檢查：只有後台管理員，或原團主可以取消
+			Admin admin = (Admin) session.getAttribute("adminUser");
+			Member member = (Member) session.getAttribute("user");
+
+			boolean isAuthorized = false;
+			if (admin != null) {
+				isAuthorized = true; // 管理員放行
+			} else if (member != null && oldGame.getHost() != null 
+					&& member.getMemberId().equals(oldGame.getHost().getMemberId())) {
+				isAuthorized = true; // 原團主放行
+			}
+
+			if (!isAuthorized) {
+				throw new RuntimeException("權限不足：您不是該場揪團的團主或管理員");
+			}
+
+			return pickupGamesService.cancelGame(id);
+		}
+
+		// 一般更新操作
 		game.setGameId(id);
 		return pickupGamesService.save(game);
 	}

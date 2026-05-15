@@ -85,4 +85,33 @@ public class PickupGameEmailService {
             System.err.println("寄送移除通知失敗 → " + toEmail + "：" + e.getMessage());
         }
     }
+
+    /**
+     * 🌟 取消揪團通知：當團主取消揪團時，自動寄送通知信給所有報名者
+     *
+     * @param recipients 收件人 Email 清單
+     * @param hostName   團主姓名
+     * @param gameInfo   球局摘要（日期+時段）
+     */
+    public void sendCancellationNotice(List<String> recipients, String hostName, String gameInfo) {
+        for (String toEmail : recipients) {
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom("ygtq.badminton@gmail.com");
+                message.setTo(toEmail);
+                message.setSubject("【羽過天晴】揪團取消通知");
+                message.setText(
+                    "Hi，球友您好！\n\n" +
+                    "很抱歉通知您，您報名的球局「" + gameInfo + "」" +
+                    "由於團主安排，目前已經取消。\n\n" +
+                    "造成不便敬請見諒。\n" +
+                    "如有預付費用，請聯繫團主（" + hostName + "）處理退費事宜。\n\n" +
+                    "— 羽過天晴羽球館"
+                );
+                mailSender.send(message);
+            } catch (Exception e) {
+                System.err.println("寄送取消通知失敗 → " + toEmail + "：" + e.getMessage());
+            }
+        }
+    }
 }
