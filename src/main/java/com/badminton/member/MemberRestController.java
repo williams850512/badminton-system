@@ -6,10 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import com.badminton.notification.NotificationMessage;
+import com.badminton.common.SystemLogService;
 import java.time.LocalDateTime;
-import java.util.UUID;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,13 +23,13 @@ public class MemberRestController {
     private JwtUtil jwtUtil;
 
     @Autowired
-    private SimpMessagingTemplate messagingTemplate;
-
-    @Autowired
     private EmailService emailService;
 
     @Autowired
     private VerificationCodeStore verificationCodeStore;
+
+    @Autowired
+    private SystemLogService systemLogService;
 
     // 1. 會員登入（回傳 JWT Token）
     @PostMapping("/login")
@@ -45,6 +43,11 @@ public class MemberRestController {
                 Map<String, Object> result = new HashMap<>();
                 result.put("token", token);
                 result.put("member", new MemberResponseDTO(user));
+
+                // 記錄登入日誌
+                String displayName = (user.getFullName() != null ? user.getFullName() : "未填寫") + " " + user.getUsername();
+                systemLogService.log("MEMBER", user.getMemberId(), displayName, "LOGIN", "SYSTEM", user.getMemberId(), displayName, "會員登入成功");
+
                 return ResponseEntity.ok(result);
             })
             .orElse(ResponseEntity.status(401).body("帳號或密碼錯誤"));
@@ -76,8 +79,22 @@ public class MemberRestController {
                 // 呼叫 Service 執行綁定或自動註冊
                 Member user = memberService.googleLogin(googleId, email, name, pictureUrl);
 
+                // 取得顯示名稱（用於日誌）
+                String displayName = (user.getFullName() != null ? user.getFullName() : "未填寫") + " (" + user.getUsername() + ")";
+
+                // 如果是新註冊會員 (判斷建立時間與現在差距 5 秒內)
+                if (user.getCreatedAt().isAfter(LocalDateTime.now().minusSeconds(5))) {
+                    // 記錄註冊日誌 (供統計使用)
+                    systemLogService.log("MEMBER", user.getMemberId(), displayName, 
+                        "REGISTER", "MEMBER", user.getMemberId(), displayName, "透過 Google 帳號自動註冊成功");
+                }
+
                 // 核發系統的 JWT Token
                 String token = jwtUtil.generateToken(user.getMemberId(), user.getUsername(), "MEMBER");
+
+                // 記錄登入日誌
+                systemLogService.log("MEMBER", user.getMemberId(), displayName, "LOGIN", "SYSTEM", user.getMemberId(), displayName, "會員透過 Google 登入成功");
+
                 Map<String, Object> result = new HashMap<>();
                 result.put("token", token);
                 result.put("member", new MemberResponseDTO(user));
@@ -94,7 +111,7 @@ public class MemberRestController {
 
     // 2. 註冊 新增會員
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Member member) {
+    public ResponseEntity<?> register(@RequestBody Member member, HttpServletRequest request) {
         try {
             if (member.getUsername() == null || !member.getUsername().matches("^[A-Za-z0-9]{6,12}$")) {
                 return ResponseEntity.badRequest().body("帳號必須為 6-12 碼英數字 (不可包含特殊字元)");
@@ -108,14 +125,23 @@ public class MemberRestController {
 
             Member savedMember = memberService.register(member);
             
-            // 廣播推播通知給後台管理員
-            NotificationMessage msg = new NotificationMessage(
-                    UUID.randomUUID().toString(),
-                    "新會員註冊",
-                    "有新會員「" + savedMember.getUsername() + "」剛剛註冊成功囉！",
-                    LocalDateTime.now()
-            );
-            messagingTemplate.convertAndSend("/topic/admin/notifications", msg);
+            // 記錄操作日誌
+            Integer adminId = (Integer) request.getAttribute("jwtUserId");
+            String adminRole = (String) request.getAttribute("jwtRole");
+            String adminName = (String) request.getAttribute("jwtUsername");
+
+            String fullName = savedMember.getFullName() != null && !savedMember.getFullName().trim().isEmpty() ? savedMember.getFullName() : "未填寫";
+            String displayName = fullName + " " + savedMember.getUsername();
+
+            if (adminId != null && ("MANAGER".equals(adminRole) || "STAFF".equals(adminRole))) {
+                systemLogService.log("ADMIN", adminId, adminName,
+                    "REGISTER", "MEMBER", savedMember.getMemberId(), displayName,
+                    "管理員新增了會員");
+            } else {
+                systemLogService.log("MEMBER", savedMember.getMemberId(), displayName,
+                    "REGISTER", "MEMBER", savedMember.getMemberId(), displayName,
+                    "新會員註冊成功");
+            }
 
             return ResponseEntity.ok(new MemberResponseDTO(savedMember));
         } catch (RuntimeException e) {
@@ -185,9 +211,24 @@ public class MemberRestController {
         }
     }
 
-    // 6. 登出（JWT 是 stateless，前端刪除 token 即可）
     @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        Integer userId = (Integer) request.getAttribute("jwtUserId");
+        String username = (String) request.getAttribute("jwtUsername");
+        String role = (String) request.getAttribute("jwtRole");
+        
+        if (userId != null && username != null) {
+            String fullName = memberService.getMemberById(userId).map(m -> m.getFullName()).orElse(null);
+            String displayName = (fullName != null && !fullName.isEmpty() ? fullName : "未填寫") + " " + username;
+            
+            String operatorType = "MEMBER";
+            if ("MANAGER".equals(role) || "STAFF".equals(role)) {
+                operatorType = "ADMIN";
+            }
+            
+            systemLogService.log(operatorType, userId, displayName, "LOGOUT", "SYSTEM", null, displayName, operatorType.equals("ADMIN") ? "管理員從前台登出成功" : "會員登出成功");
+        }
+        
         return ResponseEntity.ok("已成功登出");
     }
 
