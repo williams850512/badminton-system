@@ -15,10 +15,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.badminton.admin.Admin;
-import com.badminton.member.Member;
+import com.badminton.config.AuthHolder;
+import com.badminton.config.JwtUtil;
 import com.badminton.pickupgame.PickupGameEmailService;
-import jakarta.servlet.http.HttpSession;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/pickup-games")
@@ -32,6 +33,9 @@ public class PickupGameRestController {
 
 	@Autowired
 	private PickupGameEmailService pickupGameEmailService;
+
+	@Autowired
+	private JwtUtil jwtUtil;
 
 	// GET /api/pickup-games
 	@GetMapping
@@ -53,22 +57,56 @@ public class PickupGameRestController {
 
 	// PUT /api/pickup-games/3
 	@PutMapping("/{id}")
-	public PickupGames update(@PathVariable Integer id, @RequestBody PickupGames game, HttpSession session) {
+	public PickupGames update(@PathVariable Integer id, @RequestBody PickupGames game, HttpServletRequest request) {
 		PickupGames oldGame = pickupGamesService.findById(id);
+
+		// 如果已經是取消狀態，且前端又傳來取消，直接忽略更新
+		if (oldGame.getStatus() == PickupGameStatus.CANCELLED && game.getStatus() == PickupGameStatus.CANCELLED) {
+			return oldGame;
+		}
 
 		// 若為「取消揪團」操作
 		if (oldGame.getStatus() != PickupGameStatus.CANCELLED && game.getStatus() == PickupGameStatus.CANCELLED) {
-			// 安全性檢查：只有後台管理員，或原團主可以取消
-			Admin admin = (Admin) session.getAttribute("adminUser");
-			Member member = (Member) session.getAttribute("user");
+			
+			// 從 Token 解析身分（因為此 API 沒有在 Interceptor 的攔截範圍內，所以手動解析）
+			Integer userId = null;
+			String role = null;
+			String authHeader = request.getHeader("Authorization");
+			System.out.println("======== CANCEL GAME DEBUG ========");
+			System.out.println("AuthHeader: " + authHeader);
+			
+			if (authHeader != null && authHeader.startsWith("Bearer ")) {
+				try {
+					Claims claims = jwtUtil.parseToken(authHeader.substring(7));
+					userId = claims.get("userId", Integer.class);
+					role = claims.get("role", String.class);
+					System.out.println("Parsed from JWT - userId: " + userId + ", role: " + role);
+				} catch (Exception e) {
+					System.out.println("JWT Parse Exception: " + e.getMessage());
+					e.printStackTrace();
+				}
+			}
 
+			// 也可以回退到 AuthHolder (防萬一未來加入了 Interceptor)
+			if (userId == null && AuthHolder.isLoggedIn()) {
+				userId = AuthHolder.getUserId();
+				role = AuthHolder.getRole();
+				System.out.println("Got from AuthHolder - userId: " + userId + ", role: " + role);
+			}
+
+			// 安全性檢查：只有後台管理員，或原團主可以取消
 			boolean isAuthorized = false;
-			if (admin != null) {
+			System.out.println("Game Host ID: " + (oldGame.getHost() != null ? oldGame.getHost().getMemberId() : "NULL"));
+			
+			if ("MANAGER".equals(role) || "STAFF".equals(role)) {
 				isAuthorized = true; // 管理員放行
-			} else if (member != null && oldGame.getHost() != null 
-					&& member.getMemberId().equals(oldGame.getHost().getMemberId())) {
+			} else if (userId != null && oldGame.getHost() != null 
+					&& userId.equals(oldGame.getHost().getMemberId())) {
 				isAuthorized = true; // 原團主放行
 			}
+
+			System.out.println("isAuthorized: " + isAuthorized);
+			System.out.println("===================================");
 
 			if (!isAuthorized) {
 				throw new RuntimeException("權限不足：您不是該場揪團的團主或管理員");
