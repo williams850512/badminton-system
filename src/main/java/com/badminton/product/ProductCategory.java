@@ -6,5 +6,6 @@ public enum ProductCategory {
 	GRIP,          // 握把布
 	STRING,        // 球線
 	ACCESSORY,     // 配件
+	SHOES,         // 球鞋
 	OTHER          // 其他
 }
