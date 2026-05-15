@@ -34,6 +34,9 @@ public class Venue {
 	@Column(name = "phone", length = 20)
 	private String phone;
 	
+	@Column(name = "image_url")
+	private String imageUrl;
+	
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false, length = 20)
 	private VenueStatus status = VenueStatus.ACTIVE;
