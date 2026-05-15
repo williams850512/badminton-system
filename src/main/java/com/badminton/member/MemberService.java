@@ -14,6 +14,9 @@ public class MemberService {
 	@Autowired
 	private MemberRepository memberRepo;
 
+	@Autowired
+	private EmailService emailService;
+
 	// 1. 會員登入
 	@Transactional
 	public Optional<Member> login(String username, String password) {
@@ -45,7 +48,19 @@ public class MemberService {
 		m.setCreatedAt(now);
 		m.setUpdatedAt(now);
 
-		return memberRepo.save(m);
+		Member savedMember = memberRepo.save(m);
+		
+		// 寄送註冊成功通知信
+		if (savedMember != null && savedMember.getEmail() != null) {
+			try {
+				emailService.sendWelcomeEmail(savedMember.getEmail(), savedMember.getFullName());
+			} catch (Exception e) {
+				// 寄信失敗不影響註冊流程，僅記錄錯誤
+				System.err.println("發送註冊歡迎信失敗: " + e.getMessage());
+			}
+		}
+		
+		return savedMember;
 	}
 
 	// 檢查會員帳號是否存在
@@ -226,6 +241,17 @@ public class MemberService {
 		newMember.setCreatedAt(now);
 		newMember.setUpdatedAt(now);
 
-		return memberRepo.save(newMember);
+		Member savedNewMember = memberRepo.save(newMember);
+
+		// 寄送註冊成功通知信
+		if (savedNewMember != null && savedNewMember.getEmail() != null) {
+			try {
+				emailService.sendWelcomeEmail(savedNewMember.getEmail(), savedNewMember.getFullName());
+			} catch (Exception e) {
+				System.err.println("發送 Google 註冊歡迎信失敗: " + e.getMessage());
+			}
+		}
+
+		return savedNewMember;
 	}
 }
