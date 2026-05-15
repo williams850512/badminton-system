@@ -55,4 +55,34 @@ public class PickupGameEmailService {
         }
         return successCount;
     }
+
+    /**
+     * 🌟 移除通知：當團主踢除球友時，自動寄送通知信
+     *
+     * @param toEmail    被移除球友的 Email
+     * @param memberName 被移除球友的姓名
+     * @param gameInfo   球局摘要（日期+時段）
+     * @param hostName   團主姓名
+     */
+    public void sendRemovalNotice(String toEmail, String memberName,
+                                  String gameInfo, String hostName) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("ygtq.badminton@gmail.com");
+            message.setTo(toEmail);
+            message.setSubject("【羽過天晴】揪團參與狀態變更通知");
+            message.setText(
+                memberName + " 您好，\n\n" +
+                "很抱歉通知您，您報名的球局「" + gameInfo + "」" +
+                "由於名額調整或團主安排，已取消您的報名。\n\n" +
+                "如有預付費用，請聯繫團主（" + hostName + "）處理。\n" +
+                "造成不便敬請見諒。\n\n" +
+                "如有任何疑問，歡迎透過平台聯繫團主。\n\n" +
+                "— 羽過天晴羽球館"
+            );
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("寄送移除通知失敗 → " + toEmail + "：" + e.getMessage());
+        }
+    }
 }
