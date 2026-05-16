@@ -29,10 +29,6 @@ spring:
         physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
         format_sql: true
 
-  # ===== Thymeleaf =====
-  thymeleaf:
-    cache: false
-
   # ===== Gmail SMTP (寄送驗證碼) =====
   mail:
     host: smtp.gmail.com
