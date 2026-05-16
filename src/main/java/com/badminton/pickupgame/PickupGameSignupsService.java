@@ -36,6 +36,11 @@ public class PickupGameSignupsService {
 	public List<PickupGameSignups> findByGameId(Integer gameId){
 		return signupsRepo.findByGame_GameId(gameId);
 	}
+
+	/** 查詢某會員所有的報名紀錄 */
+	public List<PickupGameSignups> findByMemberId(Integer memberId) {
+		return signupsRepo.findByMember_MemberId(memberId);
+	}
 	
 	// ===== 新增 / 更新 =====
 
@@ -95,6 +100,18 @@ public class PickupGameSignupsService {
 		if (memberEmail != null && !memberEmail.trim().isEmpty()) {
 			pickupGameEmailService.sendRemovalNotice(memberEmail, memberName, gameInfo, hostName);
 		}
+	}
+
+	/** 根據會員ID和揪團ID刪除報名紀錄 (前台退出揪團用) */
+	public void deleteByMemberAndGame(Integer memberId, Integer gameId) {
+		List<PickupGameSignups> signups = signupsRepo.findByMember_MemberId(memberId);
+		for (PickupGameSignups s : signups) {
+			if (s.getGame().getGameId().equals(gameId)) {
+				deleteById(s.getSignupId());
+				return;
+			}
+		}
+		throw new RuntimeException("找不到對應的報名紀錄");
 	}
 	
 	// ===== 共用：同步揪團人數與狀態 =====

@@ -26,6 +26,12 @@ public class PickupGameSignupsRestController {
 		return signupsService.findAll();
 	}
 
+	// GET /api/pickup-game-signups/my-signups/3
+	@GetMapping("/my-signups/{memberId}")
+	public List<PickupGameSignups> getMySignups(@PathVariable Integer memberId) {
+		return signupsService.findByMemberId(memberId);
+	}
+
 	// GET /api/pickup-game-signups/3
 	@GetMapping("/{id}")
 	public PickupGameSignups findById(@PathVariable Integer id) {
@@ -49,6 +55,12 @@ public class PickupGameSignupsRestController {
 	@DeleteMapping("/{id}")
 	public void delete(@PathVariable Integer id) {
 		signupsService.deleteById(id);
+	}
+
+	// DELETE /api/pickup-game-signups/member/5/game/10
+	@DeleteMapping("/member/{memberId}/game/{gameId}")
+	public void deleteByMemberAndGame(@PathVariable Integer memberId, @PathVariable Integer gameId) {
+		signupsService.deleteByMemberAndGame(memberId, gameId);
 	}
 	
 	//專門處理api的controller
