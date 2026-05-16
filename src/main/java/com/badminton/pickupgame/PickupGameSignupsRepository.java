@@ -15,4 +15,6 @@ public interface PickupGameSignupsRepository extends JpaRepository<PickupGameSig
 	/** 計算某場揪團中，指定狀態的報名人數 */
 	int countByGame_GameIdAndStatus(Integer gameId, SignupStatus status);
 
+	/** 查詢某會員所有的報名紀錄 */
+	List<PickupGameSignups> findByMember_MemberId(Integer memberId);
 }
