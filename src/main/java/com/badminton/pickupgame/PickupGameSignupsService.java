@@ -74,14 +74,6 @@ public class PickupGameSignupsService {
 		return saved;
 	}
 
-	/** 標記球友未到 (防放鳥) */
-	public PickupGameSignups markAsNoShow(Integer signupId) {
-		PickupGameSignups signup = signupsRepo.findById(signupId)
-				.orElseThrow(() -> new RuntimeException("找不到報名紀錄 ID: " + signupId));
-		
-		signup.setIsNoShow(true);
-		return signupsRepo.save(signup);
-	}
 
 	// ===== 刪除 =====
 

@@ -51,11 +51,6 @@ public class PickupGameSignupsRestController {
 		return signupsService.save(signup);
 	}
 
-	// PUT /api/pickup-game-signups/3/no-show
-	@PutMapping("/{id}/no-show")
-	public PickupGameSignups markAsNoShow(@PathVariable Integer id) {
-		return signupsService.markAsNoShow(id);
-	}
 
 	// DELETE /api/pickup-game-signups/3
 	@DeleteMapping("/{id}")

@@ -58,10 +58,6 @@ public class PickupGameSignups {
 	@Column(name = "signed_up_at", nullable = false)
 	private LocalDateTime signedUpAt;
 
-	// 🌟 記錄該球友是否無故未到（放鳥）
-	@Column(name = "is_no_show", nullable = false)
-	private Boolean isNoShow = false;
-
 	@PrePersist
 	protected void onCreate() {
 		if (this.signedUpAt == null) this.signedUpAt = LocalDateTime.now();
