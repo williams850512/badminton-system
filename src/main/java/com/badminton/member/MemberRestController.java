@@ -46,7 +46,7 @@ public class MemberRestController {
 
                 // 記錄登入日誌
                 String displayName = (user.getFullName() != null ? user.getFullName() : "未填寫") + " " + user.getUsername();
-                systemLogService.log("MEMBER", user.getMemberId(), displayName, "LOGIN", "SYSTEM", user.getMemberId(), displayName, "會員登入成功");
+                systemLogService.log("MEMBER", user.getMemberId(), displayName, "LOGIN", "SYSTEM", user.getMemberId(), displayName, "會員登入系統");
 
                 return ResponseEntity.ok(result);
             })
@@ -136,14 +136,23 @@ public class MemberRestController {
             if (adminId != null && ("MANAGER".equals(adminRole) || "STAFF".equals(adminRole))) {
                 systemLogService.log("ADMIN", adminId, adminName,
                     "REGISTER", "MEMBER", savedMember.getMemberId(), displayName,
-                    "管理員新增了會員");
+                    "職員新增會員");
             } else {
                 systemLogService.log("MEMBER", savedMember.getMemberId(), displayName,
                     "REGISTER", "MEMBER", savedMember.getMemberId(), displayName,
                     "新會員註冊成功");
             }
 
-            return ResponseEntity.ok(new MemberResponseDTO(savedMember));
+            // 註冊成功後直接產生 Token（註冊即登入）
+            String token = jwtUtil.generateToken(
+                savedMember.getMemberId(),
+                savedMember.getUsername(),
+                "MEMBER"
+            );
+            Map<String, Object> result = new HashMap<>();
+            result.put("token", token);
+            result.put("member", new MemberResponseDTO(savedMember));
+            return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -226,7 +235,7 @@ public class MemberRestController {
                 operatorType = "ADMIN";
             }
             
-            systemLogService.log(operatorType, userId, displayName, "LOGOUT", "SYSTEM", null, displayName, operatorType.equals("ADMIN") ? "管理員從前台登出成功" : "會員登出成功");
+            systemLogService.log(operatorType, userId, displayName, "LOGOUT", "SYSTEM", null, displayName, operatorType.equals("ADMIN") ? "職員登出系統" : "會員登出系統");
         }
         
         return ResponseEntity.ok("已成功登出");
