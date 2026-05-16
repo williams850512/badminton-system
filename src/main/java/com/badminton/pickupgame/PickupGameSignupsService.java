@@ -74,6 +74,15 @@ public class PickupGameSignupsService {
 		return saved;
 	}
 
+	/** 標記球友未到 (防放鳥) */
+	public PickupGameSignups markAsNoShow(Integer signupId) {
+		PickupGameSignups signup = signupsRepo.findById(signupId)
+				.orElseThrow(() -> new RuntimeException("找不到報名紀錄 ID: " + signupId));
+		
+		signup.setIsNoShow(true);
+		return signupsRepo.save(signup);
+	}
+
 	// ===== 刪除 =====
 
 	/** 根據 ID 刪除報名紀錄，同時更新揪團人數與狀態，並寄送移除通知 Email */
