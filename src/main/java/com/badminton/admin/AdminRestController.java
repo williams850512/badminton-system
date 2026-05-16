@@ -73,7 +73,7 @@ public class AdminRestController {
                 
                 // 登入時手動寫入日誌
                 String displayName = formatName(admin.getFullName(), admin.getUsername());
-                systemLogService.log("ADMIN", admin.getAdminId(), displayName, "LOGIN", "SYSTEM", admin.getAdminId(), displayName, "管理員登入成功");
+                systemLogService.log("ADMIN", admin.getAdminId(), displayName, "LOGIN", "SYSTEM", admin.getAdminId(), displayName, "職員登入系統");
                 
                 return ResponseEntity.ok(result);
             })
@@ -105,7 +105,7 @@ public class AdminRestController {
         Admin updated = adminService.updateAdmin(admin);
         
         if (updated != null && oldAdmin != null) {
-            StringBuilder changes = new StringBuilder("修改了個人資料: ");
+            StringBuilder changes = new StringBuilder("修改個人資料: ");
             appendChange(changes, "姓名", oldName, updated.getFullName());
             appendChange(changes, "信箱", oldEmail, updated.getEmail());
             appendChange(changes, "電話", oldPhone, updated.getPhone());
@@ -140,7 +140,7 @@ public class AdminRestController {
 
             // 記錄操作日誌
             String displayName = formatName(savedAdmin.getFullName(), savedAdmin.getUsername());
-            logAdminAction(request, "ADD_ADMIN", "ADMIN", savedAdmin.getAdminId(), displayName, "管理員新增了管理員");
+            logAdminAction(request, "ADD_ADMIN", "ADMIN", savedAdmin.getAdminId(), displayName, "職員新增職員");
 
             return ResponseEntity.ok(savedAdmin);
         } catch (RuntimeException e) {
@@ -162,7 +162,7 @@ public class AdminRestController {
         Admin updated = adminService.updateAdmin(admin);
         
         if (updated != null && oldAdmin != null) {
-            StringBuilder changes = new StringBuilder("修改了管理員資料: ");
+            StringBuilder changes = new StringBuilder("修改職員資料: ");
             appendChange(changes, "姓名", oldName, updated.getFullName());
             appendChange(changes, "角色", oldRole, updated.getRole());
             appendChange(changes, "信箱", oldEmail, updated.getEmail());
@@ -182,10 +182,10 @@ public class AdminRestController {
         try {
             String displayName = adminService.getAdminById(id).map(a -> formatName(a.getFullName(), a.getUsername())).orElse("未知");
             adminService.deleteAdmin(id);
-            logAdminAction(request, "DELETE_ADMIN", "ADMIN", id, displayName, "刪除了管理員");
-            return ResponseEntity.ok("管理員刪除成功");
+            logAdminAction(request, "DELETE_ADMIN", "ADMIN", id, displayName, "刪除職員");
+            return ResponseEntity.ok("職員刪除成功");
         } catch (Exception e) {
-            return ResponseEntity.status(404).body("刪除失敗：找不到該管理員");
+            return ResponseEntity.status(404).body("刪除失敗：找不到該職員");
         }
     }
 
@@ -200,7 +200,7 @@ public class AdminRestController {
         if (success) {
             String displayName = adminService.getAdminById(id).map(a -> formatName(a.getFullName(), a.getUsername())).orElse("未知");
             String noteContent = data.get("note");
-            logAdminAction(request, "UPDATE_NOTE", "ADMIN", id, displayName, "更新了管理員備註為: " + (noteContent != null ? noteContent : "空"));
+            logAdminAction(request, "UPDATE_NOTE", "ADMIN", id, displayName, "更新了職員備註為: " + (noteContent != null ? noteContent : "空"));
             return ResponseEntity.ok("備註更新成功");
         }
         return ResponseEntity.badRequest().body("更新失敗");
@@ -233,7 +233,7 @@ public class AdminRestController {
             
             // 記錄操作日誌
             String displayName = formatName(savedMember.getFullName(), savedMember.getUsername());
-            logAdminAction(request, "ADD_MEMBER", "MEMBER", savedMember.getMemberId(), displayName, "管理員新增了會員");
+            logAdminAction(request, "ADD_MEMBER", "MEMBER", savedMember.getMemberId(), displayName, "職員新增會員");
 
             return ResponseEntity.ok(savedMember);
         } catch (RuntimeException e) {
@@ -264,7 +264,7 @@ public class AdminRestController {
         Member updated = memberService.updateMemberByAdmin(member);
         
         if (updated != null && oldMember != null) {
-            StringBuilder changes = new StringBuilder("修改了會員資料: ");
+            StringBuilder changes = new StringBuilder("修改會員資料: ");
             appendChange(changes, "姓名", oldName, updated.getFullName());
             appendChange(changes, "等級", oldLevel, updated.getMembershipLevel());
             appendChange(changes, "性別", oldGender, updated.getGender());
@@ -284,7 +284,7 @@ public class AdminRestController {
         try {
             String displayName = memberService.getMemberById(id).map(m -> formatName(m.getFullName(), m.getUsername())).orElse("未知");
             memberService.deleteMember(id);
-            logAdminAction(request, "DELETE_MEMBER", "MEMBER", id, displayName, "管理員刪除了會員");
+            logAdminAction(request, "DELETE_MEMBER", "MEMBER", id, displayName, "職員刪除會員");
             return ResponseEntity.ok("會員刪除成功");
         } catch (Exception e) {
             return ResponseEntity.status(404).body("刪除失敗：找不到該會員");
@@ -297,7 +297,7 @@ public class AdminRestController {
         if (success) {
             String displayName = memberService.getMemberById(id).map(m -> formatName(m.getFullName(), m.getUsername())).orElse("未知");
             String noteContent = data.get("note");
-            logAdminAction(request, "UPDATE_NOTE", "MEMBER", id, displayName, "更新了會員備註為: " + (noteContent != null ? noteContent : "空"));
+            logAdminAction(request, "UPDATE_NOTE", "MEMBER", id, displayName, "更新會員備註為: " + (noteContent != null ? noteContent : "空"));
             return ResponseEntity.ok("備註更新成功");
         }
         return ResponseEntity.badRequest().body("更新失敗");
@@ -312,7 +312,7 @@ public class AdminRestController {
             adminService.updateAdmin(admin);
             
             String displayName = formatName(admin.getFullName(), admin.getUsername());
-            logAdminAction(request, "UPDATE_STATUS", "ADMIN", id, displayName, "管理員狀態從 " + oldStatus + " 改為 " + newStatus);
+            logAdminAction(request, "UPDATE_STATUS", "ADMIN", id, displayName, "職員狀態從 " + oldStatus + " 改為 " + newStatus);
             
             return ResponseEntity.ok("狀態更新成功");
         }).orElse(ResponseEntity.notFound().build());
@@ -336,7 +336,7 @@ public class AdminRestController {
     // JWT 登出（stateless，由前端刪除 token）
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
-        logAdminAction(request, "LOGOUT", "SYSTEM", null, null, "管理員登出成功");
+        logAdminAction(request, "LOGOUT", "SYSTEM", null, null, "職員登出系統");
         return ResponseEntity.ok("已成功登出");
     }
 }
