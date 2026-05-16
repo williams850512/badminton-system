@@ -7,6 +7,7 @@ import java.time.LocalTime;
 
 import com.badminton.court.Court;
 import com.badminton.member.Member;
+import com.badminton.order.PaymentType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -60,13 +61,17 @@ public class Booking {
 	
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false, length = 20)
-	private BookingStatus status = BookingStatus.CONFIRMED;
+	private BookingStatus status;
 	
 	@Column(name = "total_amount")
 	private BigDecimal totalAmount;
 	
 	@Column(name = "note")
 	private String note;
+	
+	@Enumerated(EnumType.STRING)
+	@Column(name = "payment_type", length = 20)
+	private PaymentType paymentType;
 	
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	@Column(name = "created_at", updatable = false)

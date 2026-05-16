@@ -1,5 +1,7 @@
 package com.badminton.payment;
 
+import com.badminton.booking.BookingService;
+import com.badminton.booking.BookingStatus;
 import com.badminton.order.Order;
 import com.badminton.order.OrderService;
 import com.badminton.order.OrderStatus;
@@ -33,6 +35,7 @@ public class PaymentController {
 
     private final LinePayService linePayService;
     private final OrderService orderService;
+    private final BookingService bookingService;
 
     // =====================================================================
     // LINE Pay — 申請付款（前端呼叫此 API 取得 LINE Pay 付款網址）
@@ -140,8 +143,12 @@ public class PaymentController {
                     log.info("[Payment] 訂單 #{} 已更新為 PAID", id);
                 }
             }
-            // ★ 其他組員在這裡加上自己的 case：
-            // case "BKG" -> { bookingService.markAsPaid(Integer.parseInt(idStr)); }
+            // ★ 場地預約 — LINE Pay 付款完成，維持 CONFIRMED 狀態
+            case "BKG" -> {
+                Integer bkgId = Integer.parseInt(idStr);
+                bookingService.updateStatus(bkgId, BookingStatus.CONFIRMED);
+                log.info("[Payment] 預約 #{} LINE Pay 付款完成", bkgId);
+            }
             // case "PKG" -> { pickupGameService.markAsPaid(Integer.parseInt(idStr)); }
             default -> log.warn("[Payment] 未知的訂單前綴: {}", prefix);
         }
