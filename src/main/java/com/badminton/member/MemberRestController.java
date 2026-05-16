@@ -143,7 +143,16 @@ public class MemberRestController {
                     "新會員註冊成功");
             }
 
-            return ResponseEntity.ok(new MemberResponseDTO(savedMember));
+            // 註冊成功後直接產生 Token（註冊即登入）
+            String token = jwtUtil.generateToken(
+                savedMember.getMemberId(),
+                savedMember.getUsername(),
+                "MEMBER"
+            );
+            Map<String, Object> result = new HashMap<>();
+            result.put("token", token);
+            result.put("member", new MemberResponseDTO(savedMember));
+            return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

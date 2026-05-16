@@ -22,16 +22,16 @@ public class UploadResourceConfig implements WebMvcConfigurer {
 
         // 將 /uploads/products/** URL 映射到實體檔案目錄
         registry.addResourceHandler("/uploads/products/**")
-                .addResourceLocations(absolutePath);
+                .addResourceLocations(absolutePath.endsWith("/") ? absolutePath : absolutePath + "/");
 
         // 將 /uploads/members/** URL 映射到會員頭像目錄
         String memberUploadPath = new java.io.File("./uploads/members").getAbsoluteFile().toURI().toString();
         registry.addResourceHandler("/uploads/members/**")
-                .addResourceLocations(memberUploadPath);
+                .addResourceLocations(memberUploadPath.endsWith("/") ? memberUploadPath : memberUploadPath + "/");
 
         // 將 /uploads/venues/** URL 映射到場館圖片目錄
         String venueUploadPath = new java.io.File("./uploads/venues").getAbsoluteFile().toURI().toString();
         registry.addResourceHandler("/uploads/venues/**")
-                .addResourceLocations(venueUploadPath);
+                .addResourceLocations(venueUploadPath.endsWith("/") ? venueUploadPath : venueUploadPath + "/");
     }
 }

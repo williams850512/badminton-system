@@ -54,6 +54,16 @@ public class BookingService {
 				throw new RuntimeException("該時段已被預約！");
 			}
 		}
+		
+		// 3. ★ 根據付款方式自動設定初始狀態
+		if (booking.getStatus() == null && booking.getPaymentType() != null) {
+			switch (booking.getPaymentType()) {
+				case TRANSFER -> booking.setStatus(BookingStatus.PENDING);   // 轉帳 → 待確認
+				default -> booking.setStatus(BookingStatus.CONFIRMED);       // 其餘 → 直接確認
+			}
+		} else if (booking.getStatus() == null) {
+			booking.setStatus(BookingStatus.CONFIRMED); // 後台新增（無 paymentType）預設 CONFIRMED
+		}
 				
 		return bookingRepo.save(booking);
 	}
