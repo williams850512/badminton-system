@@ -14,10 +14,13 @@ public class AnnouncementService {
 	@Autowired
 	private AnnouncementRepository aRepo;
 	
-	// ===== 查詢（按建立時間降序，最新的在前面） =====
+	// ===== 查詢（置頂優先 → 建立時間降序） =====
 	
 	public List<Announcement> findAll(){
-		return aRepo.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+		return aRepo.findAll(Sort.by(
+				Sort.Order.desc("isPinned"),   // 置頂的排最前面
+				Sort.Order.desc("createdAt")   // 再按建立時間降序
+		));
 	}
 	
 	public Announcement findById(Integer id) {
