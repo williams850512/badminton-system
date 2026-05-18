@@ -108,7 +108,7 @@ public class AdminRestController {
             StringBuilder changes = new StringBuilder("修改個人資料: ");
             appendChange(changes, "姓名", oldName, updated.getFullName());
             appendChange(changes, "信箱", oldEmail, updated.getEmail());
-            appendChange(changes, "電話", oldPhone, updated.getPhone());
+            appendChange(changes, "手機號碼", oldPhone, updated.getPhone());
             appendChange(changes, "性別", oldGender, updated.getGender());
             appendChange(changes, "生日", oldBirthday, updated.getBirthday());
             
@@ -140,7 +140,7 @@ public class AdminRestController {
 
             // 記錄操作日誌
             String displayName = formatName(savedAdmin.getFullName(), savedAdmin.getUsername());
-            logAdminAction(request, "ADD_ADMIN", "ADMIN", savedAdmin.getAdminId(), displayName, "職員新增職員");
+            logAdminAction(request, "ADD_ADMIN", "ADMIN", savedAdmin.getAdminId(), displayName, "新增職員");
 
             return ResponseEntity.ok(savedAdmin);
         } catch (RuntimeException e) {
@@ -166,7 +166,7 @@ public class AdminRestController {
             appendChange(changes, "姓名", oldName, updated.getFullName());
             appendChange(changes, "角色", oldRole, updated.getRole());
             appendChange(changes, "信箱", oldEmail, updated.getEmail());
-            appendChange(changes, "電話", oldPhone, updated.getPhone());
+            appendChange(changes, "手機號碼", oldPhone, updated.getPhone());
             appendChange(changes, "性別", oldGender, updated.getGender());
             appendChange(changes, "生日", oldBirthday, updated.getBirthday());
             
@@ -269,7 +269,7 @@ public class AdminRestController {
             appendChange(changes, "等級", oldLevel, updated.getMembershipLevel());
             appendChange(changes, "性別", oldGender, updated.getGender());
             appendChange(changes, "生日", oldBirthday, updated.getBirthday());
-            appendChange(changes, "電話", oldPhone, updated.getPhone());
+            appendChange(changes, "手機號碼", oldPhone, updated.getPhone());
             appendChange(changes, "信箱", oldEmail, updated.getEmail());
             
             String displayName = formatName(updated.getFullName(), updated.getUsername());
@@ -284,7 +284,7 @@ public class AdminRestController {
         try {
             String displayName = memberService.getMemberById(id).map(m -> formatName(m.getFullName(), m.getUsername())).orElse("未知");
             memberService.deleteMember(id);
-            logAdminAction(request, "DELETE_MEMBER", "MEMBER", id, displayName, "職員刪除會員");
+            logAdminAction(request, "DELETE_MEMBER", "MEMBER", id, displayName, "刪除會員");
             return ResponseEntity.ok("會員刪除成功");
         } catch (Exception e) {
             return ResponseEntity.status(404).body("刪除失敗：找不到該會員");

@@ -86,7 +86,7 @@ public class MemberRestController {
                 if (user.getCreatedAt().isAfter(LocalDateTime.now().minusSeconds(5))) {
                     // 記錄註冊日誌 (供統計使用)
                     systemLogService.log("MEMBER", user.getMemberId(), displayName, 
-                        "REGISTER", "MEMBER", user.getMemberId(), displayName, "透過 Google 帳號自動註冊成功");
+                        "REGISTER", "MEMBER", user.getMemberId(), displayName, "透過 Google 帳號註冊成功");
                 }
 
                 // 核發系統的 JWT Token
@@ -136,7 +136,7 @@ public class MemberRestController {
             if (adminId != null && ("MANAGER".equals(adminRole) || "STAFF".equals(adminRole))) {
                 systemLogService.log("ADMIN", adminId, adminName,
                     "REGISTER", "MEMBER", savedMember.getMemberId(), displayName,
-                    "職員新增會員");
+                    "新增會員");
             } else {
                 systemLogService.log("MEMBER", savedMember.getMemberId(), displayName,
                     "REGISTER", "MEMBER", savedMember.getMemberId(), displayName,
