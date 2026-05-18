@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,8 +38,12 @@ public class BookingRestController {
 	
 	// POST /api/bookings
 	@PostMapping
-	public Booking create(@RequestBody Booking booking) {
-		return bookingService.save(booking);
+	public ResponseEntity<?> create(@RequestBody Booking booking) {
+		try {
+			return ResponseEntity.ok(bookingService.save(booking));
+		} catch (RuntimeException e) {
+			return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+		}
 	}
 	
 	// PATCH /api/bookings/3/status  (Body: {"status":"CONFIRMED"})
