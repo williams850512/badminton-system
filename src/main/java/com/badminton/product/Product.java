@@ -37,7 +37,7 @@ public class Product {
     private String productName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "category", length = 20)
+    @Column(name = "category", length = 30)
     private ProductCategory category;
 
     @Column(name = "brand")
@@ -56,7 +56,7 @@ public class Product {
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 10)
     private ProductStatus status = ProductStatus.ACTIVE;
 
     @Column(name = "tag", columnDefinition = "NVARCHAR(10)")
