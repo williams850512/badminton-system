@@ -45,6 +45,22 @@ public class Order {
 
     @Column(name = "note")
     private String note;
+    
+    // ==========================================
+    // ===== 發票資訊 (新增這三個欄位在這裡) =====
+    // ==========================================
+    
+    @Column(name = "invoice_type")
+    private String invoiceType;
+
+    @Column(name = "invoice_carrier")
+    private String invoiceCarrier;
+
+    @Column(name = "invoice_tax_id")
+    private String invoiceTaxId;
+    
+   // ==========================================
+
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at", updatable = false)

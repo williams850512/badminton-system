@@ -139,8 +139,8 @@ public class PaymentController {
                 Integer id = Integer.parseInt(idStr);
                 Order order = orderService.getOrderById(id);
                 if (order != null) {
-                    orderService.updateOrder(id, OrderStatus.PAID, order.getPaymentType(), order.getNote());
-                    log.info("[Payment] 訂單 #{} 已更新為 PAID", id);
+                    orderService.updateOrder(id, OrderStatus.UNPAID, order.getPaymentType(), order.getNote());
+                    log.info("[Payment] 訂單 #{} LINE Pay 付款完成，狀態維持 UNPAID (訂單成立)", id);
                 }
             }
             // ★ 場地預約 — LINE Pay 付款完成，維持 CONFIRMED 狀態

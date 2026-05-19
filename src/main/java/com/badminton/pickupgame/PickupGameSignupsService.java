@@ -50,28 +50,60 @@ public class PickupGameSignupsService {
 		
 	// ====== ① 查出揪團，確認存在 ======
 		Integer gameId = signup.getGame().getGameId();
-		PickupGames game =  pickupGameRepo.findById(gameId)
+		PickupGames game = pickupGameRepo.findById(gameId)
 		.orElseThrow(()-> new RuntimeException("找不到揪團 ID: " + gameId));
 		
-	// ====== ② 檢查揪團狀態是否為 OPEN ======
-	if(game.getStatus() != PickupGameStatus.OPEN) {
-		throw new RuntimeException("此揪團目前不開放報名" );
-		
+	// ====== ② 檢查揪團狀態 ======
+	// 如果狀態是 CLOSED (手動關閉) 或 CANCELLED (已取消)，則絕對不允許報名
+	if (game.getStatus() == PickupGameStatus.CLOSED || game.getStatus() == PickupGameStatus.CANCELLED) {
+		throw new RuntimeException("此揪團目前不開放報名");
 	}
 	
-	// ====== ③ 檢查是否重複報名 ======
-	if(signupsRepo.existsByGame_GameIdAndMember_MemberId(gameId, signup.getMember().getMemberId())) {
-		throw new RuntimeException("您已經報名過此揪團");
-		
+	// 如果狀態是 FULL，但目前人數其實還沒滿（例如管理員剛調高了人數上限），則允許放行！
+	// 如果人數真的滿了，才擋下來。
+	if (game.getCurrentPlayers() >= game.getMaxPlayers()) {
+		throw new RuntimeException("此揪團名額已滿");
 	}
 	
-	// ====== ④ 儲存報名 ======
+	Integer memberId = signup.getMember().getMemberId();
+	
+	// ====== ③ 檢查是否重複報名，或是以前取消過要重新報名 ======
+	java.util.Optional<PickupGameSignups> existingOpt = signupsRepo.findByGame_GameIdAndMember_MemberId(gameId, memberId);
+	if (existingOpt.isPresent()) {
+		PickupGameSignups existing = existingOpt.get();
+		if (existing.getStatus() == SignupStatus.JOINED) {
+			throw new RuntimeException("您已經報名過此揪團");
+		} else {
+			// 原本是 CANCELLED 或其他狀態，更新回 JOINED
+			existing.setStatus(SignupStatus.JOINED);
+			PickupGameSignups saved = signupsRepo.save(existing);
+			syncGamePlayerCount(game);
+			return saved;
+		}
+	}
+	
+	// ====== ④ 衝堂檢查 (防分身術) ======
+	// 撈出此會員所有已加入的報名
+	List<PickupGameSignups> mySignups = signupsRepo.findByMember_MemberId(memberId);
+	for (PickupGameSignups s : mySignups) {
+		if (s.getStatus() == SignupStatus.JOINED) {
+			PickupGames existingGame = s.getGame();
+			// 檢查是否同一天
+			if (existingGame.getGameDate().equals(game.getGameDate())) {
+				// 檢查時間是否有交集：(新開始 < 舊結束) AND (新結束 > 舊開始)
+				if (game.getStartTime().isBefore(existingGame.getEndTime()) && 
+					game.getEndTime().isAfter(existingGame.getStartTime())) {
+					throw new RuntimeException("您在同一時段已經報名了另一場揪團，無法重複參加！");
+				}
+			}
+		}
+	}
+	
+	// ====== ⑤ 儲存全新報名 ======
 	PickupGameSignups saved = signupsRepo.save(signup);
-	
-	// ====== ⑤ 動態計算人數並同步揪團狀態 ======
 	syncGamePlayerCount(game);
-		
-		return saved;
+	
+	return saved;
 	}
 
 

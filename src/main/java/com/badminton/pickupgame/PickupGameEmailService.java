@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
@@ -27,6 +28,7 @@ public class PickupGameEmailService {
      * @param content    團主輸入的公告內容
      * @return 成功寄送的封數
      */
+    @Async
     public int sendBroadcast(List<String> recipients, String hostName,
                              String gameInfo, String content) {
         int successCount = 0;
@@ -64,6 +66,7 @@ public class PickupGameEmailService {
      * @param gameInfo   球局摘要（日期+時段）
      * @param hostName   團主姓名
      */
+    @Async
     public void sendRemovalNotice(String toEmail, String memberName,
                                   String gameInfo, String hostName) {
         try {
@@ -93,6 +96,7 @@ public class PickupGameEmailService {
      * @param hostName   團主姓名
      * @param gameInfo   球局摘要（日期+時段）
      */
+    @Async
     public void sendCancellationNotice(List<String> recipients, String hostName, String gameInfo) {
         for (String toEmail : recipients) {
             try {
