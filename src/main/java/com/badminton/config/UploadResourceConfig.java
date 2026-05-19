@@ -33,5 +33,10 @@ public class UploadResourceConfig implements WebMvcConfigurer {
         String venueUploadPath = new java.io.File("./uploads/venues").getAbsoluteFile().toURI().toString();
         registry.addResourceHandler("/uploads/venues/**")
                 .addResourceLocations(venueUploadPath.endsWith("/") ? venueUploadPath : venueUploadPath + "/");
+
+        // 將 /uploads/announcements/** URL 映射到公告圖片目錄
+        String announcementUploadPath = new java.io.File("./uploads/announcements").getAbsoluteFile().toURI().toString();
+        registry.addResourceHandler("/uploads/announcements/**")
+                .addResourceLocations(announcementUploadPath.endsWith("/") ? announcementUploadPath : announcementUploadPath + "/");
     }
 }
