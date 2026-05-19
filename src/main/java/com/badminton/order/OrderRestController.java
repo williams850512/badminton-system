@@ -1,13 +1,10 @@
 package com.badminton.order;
 
-import com.badminton.admin.Admin;
-import com.badminton.member.Member;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,21 +15,29 @@ public class OrderRestController {
     private final OrderService orderService;
 
     // ========================================
-    // 權限檢查工具方法
+    // JWT 權限檢查工具方法
     // ========================================
 
-    /** 從 Session 取得管理員（已登入則回傳物件，否則 null） */
-    private Admin getAdmin(HttpSession session) {
-        return (session != null) ? (Admin) session.getAttribute("adminUser") : null;
+    /** 從 JWT 取得角色（MANAGER / STAFF / MEMBER） */
+    private String getRole(HttpServletRequest request) {
+        return (String) request.getAttribute("jwtRole");
     }
 
-    /** 從 Session 取得會員（已登入則回傳物件，否則 null） */
-    private Member getMember(HttpSession session) {
-        return (session != null) ? (Member) session.getAttribute("user") : null;
+    /** 從 JWT 取得使用者 ID */
+    private Integer getUserId(HttpServletRequest request) {
+        return (Integer) request.getAttribute("jwtUserId");
     }
 
-    // ★ 已與 Member 模組整合，啟用完整 Session 權限驗證
-    private static final boolean DEMO_MODE = false;
+    /** 是否為管理員（MANAGER 或 STAFF） */
+    private boolean isAdmin(HttpServletRequest request) {
+        String role = getRole(request);
+        return "MANAGER".equals(role) || "STAFF".equals(role);
+    }
+
+    /** 是否為會員 */
+    private boolean isMember(HttpServletRequest request) {
+        return "MEMBER".equals(getRole(request));
+    }
 
     // ========================================
     // 訂單 CRUD
@@ -42,23 +47,21 @@ public class OrderRestController {
     // GET /api/orders?memberId=3 → 該會員訂單（前台用，需本人或管理員）
     @GetMapping
     public ResponseEntity<?> findAll(@RequestParam(required = false) Integer memberId,
-                                     HttpSession session) {
-        Admin admin = getAdmin(session);
-        Member member = getMember(session);
-
+                                     HttpServletRequest request) {
         if (memberId != null) {
             // 前台查詢：驗證是否本人或管理員
-            if (DEMO_MODE || admin != null) {
+            if (isAdmin(request)) {
                 return ResponseEntity.ok(orderService.getOrdersByMemberId(memberId));
             }
-            if (member != null && member.getMemberId() == memberId) {
+            Integer currentUserId = getUserId(request);
+            if (isMember(request) && currentUserId != null && currentUserId.equals(memberId)) {
                 return ResponseEntity.ok(orderService.getOrdersByMemberId(memberId));
             }
-            return ResponseEntity.status(401).body("請先登入會員");
+            return ResponseEntity.status(403).body("無權查看此會員訂單");
         }
 
         // 無 memberId = 後台列出全部訂單（需管理權限）
-        if (DEMO_MODE || admin != null) {
+        if (isAdmin(request)) {
             return ResponseEntity.ok(orderService.getAllOrders());
         }
         return ResponseEntity.status(403).body("需要管理權限");
@@ -66,20 +69,18 @@ public class OrderRestController {
 
     // GET /api/orders/3 → 查詢單筆訂單
     @GetMapping("/{id}")
-    public ResponseEntity<?> findById(@PathVariable Integer id, HttpSession session) {
+    public ResponseEntity<?> findById(@PathVariable Integer id, HttpServletRequest request) {
         Order order = orderService.getOrderById(id);
         if (order == null) {
             return ResponseEntity.notFound().build();
         }
 
-        Admin admin = getAdmin(session);
-        Member member = getMember(session);
-
-        if (DEMO_MODE || admin != null) {
+        if (isAdmin(request)) {
             return ResponseEntity.ok(order);
         }
-        if (member != null && order.getMember() != null
-                && member.getMemberId() == order.getMember().getMemberId()) {
+        Integer currentUserId = getUserId(request);
+        if (isMember(request) && order.getMember() != null
+                && currentUserId != null && currentUserId.equals(order.getMember().getMemberId())) {
             return ResponseEntity.ok(order);
         }
         return ResponseEntity.status(403).body("無權查看此訂單");
@@ -87,16 +88,15 @@ public class OrderRestController {
 
     // POST /api/orders → 建立訂單 (Body: JSON)
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody Order order, HttpSession session) {
-        Admin admin = getAdmin(session);
-        Member member = getMember(session);
-
-        if (!DEMO_MODE && admin == null && member == null) {
+    public ResponseEntity<?> create(@RequestBody Order order, HttpServletRequest request) {
+        if (getUserId(request) == null) {
             return ResponseEntity.status(401).body("請先登入");
         }
 
         // ★ 防禦 IDOR 攻擊：非管理員時，強制將訂單綁定為當前登入會員，防止竄改 memberId
-        if (!DEMO_MODE && admin == null && member != null) {
+        if (isMember(request)) {
+            com.badminton.member.Member member = new com.badminton.member.Member();
+            member.setMemberId(getUserId(request));
             order.setMember(member);
         }
 
@@ -107,15 +107,14 @@ public class OrderRestController {
     // PUT /api/orders/3 → 更新訂單（可變更 status, paymentType, note，需管理權限）
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody Order order,
-                                     HttpSession session) {
+                                     HttpServletRequest request) {
         Order existing = orderService.getOrderById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
 
         // ★ 權限防護：僅管理員可修改訂單
-        Admin admin = getAdmin(session);
-        if (!DEMO_MODE && admin == null) {
+        if (!isAdmin(request)) {
             return ResponseEntity.status(403).body("需要管理權限才能修改訂單");
         }
 
@@ -126,15 +125,14 @@ public class OrderRestController {
     // PATCH /api/orders/3/status → 變更訂單狀態（需管理權限）
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body,
-                                           HttpSession session) {
+                                           HttpServletRequest request) {
         Order existing = orderService.getOrderById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
 
         // ★ 權限防護：僅管理員可變更訂單狀態
-        Admin admin = getAdmin(session);
-        if (!DEMO_MODE && admin == null) {
+        if (!isAdmin(request)) {
             return ResponseEntity.status(403).body("需要管理權限才能變更訂單狀態");
         }
 
@@ -145,15 +143,14 @@ public class OrderRestController {
 
     // DELETE /api/orders/3 → 刪除訂單（含底下明細，需管理權限）
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Integer id, HttpSession session) {
+    public ResponseEntity<?> delete(@PathVariable Integer id, HttpServletRequest request) {
         Order existing = orderService.getOrderById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
 
         // ★ 權限防護：僅管理員可刪除訂單
-        Admin admin = getAdmin(session);
-        if (!DEMO_MODE && admin == null) {
+        if (!isAdmin(request)) {
             return ResponseEntity.status(403).body("需要管理權限才能刪除訂單");
         }
 
@@ -167,20 +164,18 @@ public class OrderRestController {
 
     // GET /api/orders/3/items → 取得該訂單所有明細
     @GetMapping("/{orderId}/items")
-    public ResponseEntity<?> findItemsByOrderId(@PathVariable Integer orderId, HttpSession session) {
+    public ResponseEntity<?> findItemsByOrderId(@PathVariable Integer orderId, HttpServletRequest request) {
         Order order = orderService.getOrderById(orderId);
         if (order == null) {
             return ResponseEntity.notFound().build();
         }
 
-        Admin admin = getAdmin(session);
-        Member member = getMember(session);
-
-        if (DEMO_MODE || admin != null) {
+        if (isAdmin(request)) {
             return ResponseEntity.ok(orderService.getItemsByOrderId(orderId));
         }
-        if (member != null && order.getMember() != null
-                && member.getMemberId() == order.getMember().getMemberId()) {
+        Integer currentUserId = getUserId(request);
+        if (isMember(request) && order.getMember() != null
+                && currentUserId != null && currentUserId.equals(order.getMember().getMemberId())) {
             return ResponseEntity.ok(orderService.getItemsByOrderId(orderId));
         }
         return ResponseEntity.status(403).body("無權查看此訂單明細");
@@ -200,19 +195,17 @@ public class OrderRestController {
     // POST /api/orders/3/items → 新增明細（需驗證訂單歸屬）
     @PostMapping("/{orderId}/items")
     public ResponseEntity<?> createItem(@PathVariable Integer orderId, @RequestBody OrderItem item,
-                                        HttpSession session) {
-        Admin admin = getAdmin(session);
-        Member member = getMember(session);
-
-        if (!DEMO_MODE && admin == null && member == null) {
+                                        HttpServletRequest request) {
+        if (getUserId(request) == null) {
             return ResponseEntity.status(401).body("請先登入");
         }
 
         // ★ 防禦越權：驗證該訂單確實屬於當前登入會員，防止跨帳戶注入明細
-        if (!DEMO_MODE && admin == null && member != null) {
+        if (isMember(request)) {
             Order order = orderService.getOrderById(orderId);
+            Integer currentUserId = getUserId(request);
             if (order == null || order.getMember() == null
-                    || member.getMemberId() != order.getMember().getMemberId()) {
+                    || !currentUserId.equals(order.getMember().getMemberId())) {
                 return ResponseEntity.status(403).body("無權為此訂單新增明細");
             }
         }
@@ -227,15 +220,14 @@ public class OrderRestController {
     public ResponseEntity<?> updateItem(@PathVariable Integer orderId,
                                         @PathVariable Integer itemId,
                                         @RequestBody OrderItem item,
-                                        HttpSession session) {
+                                        HttpServletRequest request) {
         OrderItem existing = orderService.getOrderItemById(itemId);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
 
         // ★ 權限防護：僅管理員可修改明細
-        Admin admin = getAdmin(session);
-        if (!DEMO_MODE && admin == null) {
+        if (!isAdmin(request)) {
             return ResponseEntity.status(403).body("需要管理權限才能修改明細");
         }
 
@@ -247,15 +239,14 @@ public class OrderRestController {
     @DeleteMapping("/{orderId}/items/{itemId}")
     public ResponseEntity<?> deleteItem(@PathVariable Integer orderId,
                                         @PathVariable Integer itemId,
-                                        HttpSession session) {
+                                        HttpServletRequest request) {
         OrderItem existing = orderService.getOrderItemById(itemId);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
 
         // ★ 權限防護：僅管理員可刪除明細
-        Admin admin = getAdmin(session);
-        if (!DEMO_MODE && admin == null) {
+        if (!isAdmin(request)) {
             return ResponseEntity.status(403).body("需要管理權限才能刪除明細");
         }
 
