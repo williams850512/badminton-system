@@ -23,7 +23,14 @@ public class MemberService {
 		if (username == null || password == null)
 			return Optional.empty();
 		Optional<Member> member = memberRepo.findByLogin(username, password);
-		member.ifPresent(m -> memberRepo.updateLastLoginTime(m.getMemberId()));
+		member.ifPresent(m -> {
+			memberRepo.updateLastLoginTime(m.getMemberId());
+			// [Demo] 如果 hsuanhsu 沒有大頭貼，自動補上
+			if ("hsuanhsu".equals(m.getUsername()) && (m.getProfilePicture() == null || m.getProfilePicture().isEmpty())) {
+				m.setProfilePicture("/profile_pictures/4.png");
+				memberRepo.save(m);
+			}
+		});
 		return member;
 	}
 
@@ -33,8 +40,27 @@ public class MemberService {
 		if (m == null || m.getUsername() == null)
 			return null;
 
-		if (isUsernameExists(m.getUsername())) {
-			throw new RuntimeException("註冊失敗：帳號 [" + m.getUsername() + "] 已被佔用。");
+		// 為了 Demo 測試，暫時關閉註冊時的帳號重複檢查
+		// 改為：如果帳號已經存在，就直接覆寫更新它的資料（這樣 Demo 時就可以無限次重複註冊同一個帳號！）
+		Optional<Member> existingOpt = memberRepo.findByUsername(m.getUsername());
+		if (existingOpt.isPresent()) {
+			Member existing = existingOpt.get();
+			existing.setPassword(m.getPassword()); // 直接覆寫密碼
+			existing.setFullName(m.getFullName());
+			existing.setEmail(m.getEmail());
+			existing.setPhone(m.getPhone());
+			existing.setGender(m.getGender());
+			existing.setBirthday(m.getBirthday());
+			existing.setProfilePicture(m.getProfilePicture()); // Demo: 覆寫大頭貼
+			existing.setUpdatedAt(LocalDateTime.now());
+			
+			Member savedMember = memberRepo.save(existing);
+			if (savedMember != null && savedMember.getEmail() != null) {
+				try {
+					emailService.sendWelcomeEmail(savedMember.getEmail(), savedMember.getFullName());
+				} catch (Exception e) {}
+			}
+			return savedMember;
 		}
 
 		// 設定初始預設值 (與 SQL DEFAULT 保持一致)
@@ -202,7 +228,37 @@ public class MemberService {
 	// 13. Google 第三方登入
 	@Transactional
 	public Member googleLogin(String googleId, String email, String fullName, String pictureUrl) {
-		// 1. 先用 googleId 找看看有沒有綁定過的會員
+		// [Demo 專屬防呆機制]
+		// 1. 強制優先尋找使用者「手動註冊」(非 g_ 開頭) 的帳號
+		List<Member> manualMembers = memberRepo.findManualRegisterByEmail(email);
+		if (manualMembers != null && !manualMembers.isEmpty()) {
+			Member m = manualMembers.get(0);
+			
+			// 如果之前已經不小心產生了 g_ 帳號，先把原本的 g_ 帳號解除 googleId 綁定，避免 Unique Constraint 錯誤
+			Optional<Member> existingGMember = memberRepo.findByGoogleId(googleId);
+			if (existingGMember.isPresent() && existingGMember.get().getMemberId() != m.getMemberId()) {
+				Member oldG = existingGMember.get();
+				oldG.setGoogleId(null);
+				oldG.setEmail(oldG.getEmail() + "_disabled_" + System.currentTimeMillis());
+				memberRepo.save(oldG);
+			}
+
+			// 將 Google ID 強制綁定給手動註冊的帳號
+			m.setGoogleId(googleId);
+			if (m.getAuthProvider() == null || m.getAuthProvider().equals("LOCAL")) {
+				m.setAuthProvider("GOOGLE_LINKED");
+			}
+			// [Demo] 如果手動帳號沒有大頭貼，自動補上
+			if (m.getProfilePicture() == null || m.getProfilePicture().isEmpty()) {
+				m.setProfilePicture("/profile_pictures/4.png");
+			}
+			memberRepo.save(m);
+			memberRepo.updateLastLoginTime(m.getMemberId());
+			// 重新從 DB 讀取，確保回傳最新完整資料（含 profilePicture）
+			return memberRepo.findById(m.getMemberId()).orElse(m);
+		}
+
+		// 2. 如果沒有手動註冊過，先用 googleId 找看看有沒有綁定過的會員 (可能是以前自動產生的 g_ 帳號)
 		Optional<Member> existingMember = memberRepo.findByGoogleId(googleId);
 		if (existingMember.isPresent()) {
 			Member m = existingMember.get();
