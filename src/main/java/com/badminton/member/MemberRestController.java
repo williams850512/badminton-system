@@ -111,8 +111,20 @@ public class MemberRestController {
 
     // 2. 註冊 新增會員
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Member member, HttpServletRequest request) {
+    public ResponseEntity<?> register(@RequestBody Member member, @RequestParam(required = false) String code, HttpServletRequest request) {
         try {
+            // 驗證碼檢查 (前端如果有帶 code 過來就驗證)
+            if (code != null && !code.trim().isEmpty()) {
+                if (member.getEmail() == null || member.getEmail().trim().isEmpty()) {
+                    return ResponseEntity.badRequest().body("缺少電子信箱，無法驗證");
+                }
+                if (!verificationCodeStore.verify(member.getEmail().trim(), code.trim())) {
+                    return ResponseEntity.badRequest().body("驗證碼錯誤或已過期，請重新取得");
+                }
+                // 驗證成功後移除驗證碼，避免重複使用
+                verificationCodeStore.remove(member.getEmail().trim());
+            }
+
             if (member.getUsername() == null || !member.getUsername().matches("^[A-Za-z0-9]{6,12}$")) {
                 return ResponseEntity.badRequest().body("帳號必須為 6-12 碼英數字 (不可包含特殊字元)");
             }
@@ -270,6 +282,40 @@ public class MemberRestController {
         }
 
         return ResponseEntity.ok(Map.of("message", "驗證碼已寄送至您的信箱"));
+    }
+
+    // 7.5 發送驗證碼到信箱 (用於註冊，不檢查帳號是否已存在)
+    @PostMapping("/send-register-code")
+    public ResponseEntity<?> sendRegisterCode(@RequestBody Map<String, String> data) {
+        String email = data.get("email");
+        String username = data.get("username");
+
+        if (email == null || email.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "請輸入電子信箱"));
+        }
+
+        // 為了 Demo 測試，暫時關閉「檢查帳號是否已被註冊」的限制
+        /*
+        if (username != null && !username.trim().isEmpty()) {
+            if (memberService.isUsernameExists(username.trim())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "此帳號已被使用，請更換一個"));
+            }
+        }
+        */
+
+        // 產生 6 位數驗證碼
+        String code = String.valueOf((int) (Math.random() * 900000) + 100000);
+        verificationCodeStore.save(email.trim(), code);
+
+        // 寄送驗證碼
+        try {
+            emailService.sendVerificationCode(email.trim(), code);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "驗證碼寄送失敗，請稍後再試"));
+        }
+
+        return ResponseEntity.ok(Map.of("message", "註冊驗證碼已寄送至您的信箱"));
     }
 
     // 8. 忘記密碼 — 使用驗證碼重設密碼

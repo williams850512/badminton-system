@@ -21,10 +21,15 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
 
     // 2. 查重
     boolean existsByUsername(String username);
+    Optional<Member> findByUsername(String username);
 
     // Google 第三方登入相關
     Optional<Member> findByGoogleId(String googleId);
     Optional<Member> findByEmail(String email);
+
+    // 為了 Demo 強制綁定：尋找手動註冊 (非 g_ 開頭) 的同信箱會員（優先取最新註冊的）
+    @Query("SELECT m FROM Member m WHERE m.email = :email AND m.username NOT LIKE 'g_%' ORDER BY m.memberId DESC")
+    List<Member> findManualRegisterByEmail(@Param("email") String email);
 
     // 忘記密碼 - 帳號+Email 查詢
     Optional<Member> findByUsernameAndEmail(String username, String email);
