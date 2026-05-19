@@ -49,6 +49,9 @@ public class Announcement {
 	@Column(name = "category")
 	private String category;
 	
+	@Column(name = "image_url", length = 500)
+	private String imageUrl;
+	
 	@Column(name = "is_pinned")
 	private Boolean isPinned;
 	

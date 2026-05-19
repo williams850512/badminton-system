@@ -1,9 +1,13 @@
 package com.badminton.announcement;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -12,7 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.badminton.admin.Admin;
 import com.badminton.admin.AdminService;
@@ -77,6 +83,48 @@ public class AnnouncementRestController {
 	@PatchMapping("/{id}/view")
 	public Announcement incrementView(@PathVariable Integer id) {
 		return aService.incrementViewCount(id);
+	}
+
+	// POST /api/announcements/upload → 上傳公告圖片（支援刪除舊圖）
+	@PostMapping("/upload")
+	public ResponseEntity<Map<String, String>> uploadImage(
+			@RequestParam("image") MultipartFile image,
+			@RequestParam(value = "oldImageUrl", required = false) String oldImageUrl) {
+		if (image == null || image.isEmpty()) {
+			return ResponseEntity.badRequest()
+					.body(Map.of("error", "請選擇圖片檔案"));
+		}
+
+		try {
+			// 產生唯一檔名（避免重複）
+			String fileName = UUID.randomUUID() + "_" + image.getOriginalFilename();
+
+			// 存到外部上傳目錄
+			File dir = new File("./uploads/announcements").getAbsoluteFile();
+			if (!dir.exists()) {
+				dir.mkdirs();
+			}
+
+			File dest = new File(dir, fileName);
+			image.transferTo(dest);
+
+			// 刪除舊圖片（如果有的話）
+			if (oldImageUrl != null && oldImageUrl.startsWith("/uploads/announcements/")) {
+				String oldFileName = oldImageUrl.replace("/uploads/announcements/", "");
+				File oldFile = new File(dir, oldFileName);
+				if (oldFile.exists()) {
+					oldFile.delete();
+				}
+			}
+
+			// 回傳可存取的 URL 路徑
+			String imageUrl = "/uploads/announcements/" + fileName;
+			return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
+
+		} catch (IOException e) {
+			return ResponseEntity.internalServerError()
+					.body(Map.of("error", "圖片上傳失敗：" + e.getMessage()));
+		}
 	}
 
 	/**

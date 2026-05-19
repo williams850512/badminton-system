@@ -46,6 +46,8 @@ public class WebCorsConfig {
         source.registerCorsConfiguration("/api/**", config);
         // 上傳檔案的路徑也需要（圖片存取）
         source.registerCorsConfiguration("/uploads/**", config);
+        // 靜態大頭貼資源（Demo 一鍵帶入用）
+        source.registerCorsConfiguration("/profile_pictures/**", config);
 
         return new CorsFilter(source);
     }
