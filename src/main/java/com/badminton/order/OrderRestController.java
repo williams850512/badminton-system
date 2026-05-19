@@ -31,8 +31,8 @@ public class OrderRestController {
         return (session != null) ? (Member) session.getAttribute("user") : null;
     }
 
-    // TODO: 與 Member 模組 merge 後，將此改為 false 以啟用完整 Session 權限驗證
-    private static final boolean DEMO_MODE = true;
+    // ★ 已與 Member 模組整合，啟用完整 Session 權限驗證
+    private static final boolean DEMO_MODE = false;
 
     // ========================================
     // 訂單 CRUD
@@ -95,40 +95,68 @@ public class OrderRestController {
             return ResponseEntity.status(401).body("請先登入");
         }
 
+        // ★ 防禦 IDOR 攻擊：非管理員時，強制將訂單綁定為當前登入會員，防止竄改 memberId
+        if (!DEMO_MODE && admin == null && member != null) {
+            order.setMember(member);
+        }
+
         orderService.saveOrder(order);
         return ResponseEntity.ok(order);
     }
 
-    // PUT /api/orders/3 → 更新訂單（可變更 status, paymentType, note）
+    // PUT /api/orders/3 → 更新訂單（可變更 status, paymentType, note，需管理權限）
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody Order order) {
+    public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody Order order,
+                                     HttpSession session) {
         Order existing = orderService.getOrderById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
+
+        // ★ 權限防護：僅管理員可修改訂單
+        Admin admin = getAdmin(session);
+        if (!DEMO_MODE && admin == null) {
+            return ResponseEntity.status(403).body("需要管理權限才能修改訂單");
+        }
+
         orderService.updateOrder(id, order.getStatus(), order.getPaymentType(), order.getNote());
         return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
-    // PATCH /api/orders/3/status → 變更訂單狀態
+    // PATCH /api/orders/3/status → 變更訂單狀態（需管理權限）
     @PatchMapping("/{id}/status")
-    public ResponseEntity<?> updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body,
+                                           HttpSession session) {
         Order existing = orderService.getOrderById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
+
+        // ★ 權限防護：僅管理員可變更訂單狀態
+        Admin admin = getAdmin(session);
+        if (!DEMO_MODE && admin == null) {
+            return ResponseEntity.status(403).body("需要管理權限才能變更訂單狀態");
+        }
+
         OrderStatus newStatus = OrderStatus.valueOf(body.get("status"));
         orderService.updateOrder(id, newStatus, existing.getPaymentType(), existing.getNote());
         return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
-    // DELETE /api/orders/3 → 刪除訂單（含底下明細）
+    // DELETE /api/orders/3 → 刪除訂單（含底下明細，需管理權限）
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+    public ResponseEntity<?> delete(@PathVariable Integer id, HttpSession session) {
         Order existing = orderService.getOrderById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
+
+        // ★ 權限防護：僅管理員可刪除訂單
+        Admin admin = getAdmin(session);
+        if (!DEMO_MODE && admin == null) {
+            return ResponseEntity.status(403).body("需要管理權限才能刪除訂單");
+        }
+
         orderService.deleteOrder(id);
         return ResponseEntity.ok().build();
     }
@@ -169,7 +197,7 @@ public class OrderRestController {
         return ResponseEntity.ok(item);
     }
 
-    // POST /api/orders/3/items → 新增明細
+    // POST /api/orders/3/items → 新增明細（需驗證訂單歸屬）
     @PostMapping("/{orderId}/items")
     public ResponseEntity<?> createItem(@PathVariable Integer orderId, @RequestBody OrderItem item,
                                         HttpSession session) {
@@ -180,32 +208,57 @@ public class OrderRestController {
             return ResponseEntity.status(401).body("請先登入");
         }
 
+        // ★ 防禦越權：驗證該訂單確實屬於當前登入會員，防止跨帳戶注入明細
+        if (!DEMO_MODE && admin == null && member != null) {
+            Order order = orderService.getOrderById(orderId);
+            if (order == null || order.getMember() == null
+                    || member.getMemberId() != order.getMember().getMemberId()) {
+                return ResponseEntity.status(403).body("無權為此訂單新增明細");
+            }
+        }
+
         item.setOrderId(orderId);
         orderService.saveOrderItem(item);
         return ResponseEntity.ok(item);
     }
 
-    // PUT /api/orders/3/items/5 → 更新明細
+    // PUT /api/orders/3/items/5 → 更新明細（需管理權限）
     @PutMapping("/{orderId}/items/{itemId}")
-    public ResponseEntity<OrderItem> updateItem(@PathVariable Integer orderId,
-                                                @PathVariable Integer itemId,
-                                                @RequestBody OrderItem item) {
+    public ResponseEntity<?> updateItem(@PathVariable Integer orderId,
+                                        @PathVariable Integer itemId,
+                                        @RequestBody OrderItem item,
+                                        HttpSession session) {
         OrderItem existing = orderService.getOrderItemById(itemId);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
+
+        // ★ 權限防護：僅管理員可修改明細
+        Admin admin = getAdmin(session);
+        if (!DEMO_MODE && admin == null) {
+            return ResponseEntity.status(403).body("需要管理權限才能修改明細");
+        }
+
         orderService.updateOrderItem(itemId, item.getProduct(), item.getQuantity(), item.getUnitPrice());
         return ResponseEntity.ok(orderService.getOrderItemById(itemId));
     }
 
-    // DELETE /api/orders/3/items/5 → 刪除單筆明細
+    // DELETE /api/orders/3/items/5 → 刪除單筆明細（需管理權限）
     @DeleteMapping("/{orderId}/items/{itemId}")
-    public ResponseEntity<Void> deleteItem(@PathVariable Integer orderId,
-                                           @PathVariable Integer itemId) {
+    public ResponseEntity<?> deleteItem(@PathVariable Integer orderId,
+                                        @PathVariable Integer itemId,
+                                        HttpSession session) {
         OrderItem existing = orderService.getOrderItemById(itemId);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
+
+        // ★ 權限防護：僅管理員可刪除明細
+        Admin admin = getAdmin(session);
+        if (!DEMO_MODE && admin == null) {
+            return ResponseEntity.status(403).body("需要管理權限才能刪除明細");
+        }
+
         orderService.deleteOrderItem(itemId);
         return ResponseEntity.ok().build();
     }
