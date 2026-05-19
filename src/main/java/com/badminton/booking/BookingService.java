@@ -41,6 +41,9 @@ public class BookingService {
 	
 	// ===== 新增 / (客戶預約不能更新!) =====
 	
+	// 場地每小時單價（未來可改為從 Court 或 Venue 的欄位讀取）
+	private static final int HOURLY_RATE = 300;
+	
 	public Booking save(Booking booking) {
 		// 1. 先撈出「同場地、同日期、未取消」的所有現有預約
 		List<Booking> existingBookings = bookingRepo.findByCourtAndBookingDateAndStatusNot(
@@ -55,7 +58,17 @@ public class BookingService {
 			}
 		}
 		
-		// 3. ★ 根據付款方式自動設定初始狀態
+		// 3. ★ 伺服器端金額計算（忽略前端傳來的金額，防止篡改）
+		if (booking.getStartTime() != null && booking.getEndTime() != null) {
+			long hours = java.time.Duration.between(booking.getStartTime(), booking.getEndTime()).toHours();
+			if (hours <= 0) {
+				throw new RuntimeException("結束時間必須晚於開始時間");
+			}
+			java.math.BigDecimal serverAmount = java.math.BigDecimal.valueOf(hours * HOURLY_RATE);
+			booking.setTotalAmount(serverAmount);
+		}
+		
+		// 4. ★ 根據付款方式自動設定初始狀態
 		if (booking.getStatus() == null && booking.getPaymentType() != null) {
 			switch (booking.getPaymentType()) {
 				case TRANSFER -> booking.setStatus(BookingStatus.PENDING);   // 轉帳 → 待確認
@@ -92,6 +105,14 @@ public class BookingService {
 		return bookingRepo.searchByKeyword(keyword);
 	}
 	
+	// ===== 刪除預約（後台管理員用）=====
+	public void deleteById(Integer id) {
+		if (!bookingRepo.existsById(id)) {
+			throw new RuntimeException("找不到預約 ID: " + id);
+		}
+		bookingRepo.deleteById(id);
+	}
+	
 	public List<Booking> findByCourtAndDate(Integer courtId, LocalDate date) {
 	    Court court = new Court();
 	    court.setCourtId(courtId);
@@ -109,6 +130,50 @@ public class BookingService {
 	// 查詢某會員的所有預約紀錄（會員中心用，按日期降序）
 	public List<Booking> findAllByMemberId(int memberId) {
 		return bookingRepo.findByMember_MemberIdOrderByBookingDateDescStartTimeDesc(memberId);
+	}
+
+	// ===== 編輯預約（後台管理員用）=====
+	
+	public Booking update(Integer id, Booking updated) {
+		Booking booking = bookingRepo.findById(id)
+				.orElseThrow(() -> new RuntimeException("找不到預約 ID: " + id));
+		
+		// 更新可修改的欄位
+		if (updated.getCourt() != null) {
+			booking.setCourt(updated.getCourt());
+		}
+		if (updated.getBookingDate() != null) {
+			booking.setBookingDate(updated.getBookingDate());
+		}
+		if (updated.getStartTime() != null) {
+			booking.setStartTime(updated.getStartTime());
+		}
+		if (updated.getEndTime() != null) {
+			booking.setEndTime(updated.getEndTime());
+		}
+		if (updated.getNote() != null) {
+			booking.setNote(updated.getNote());
+		}
+		
+		// 檢查時段衝突（排除自己這筆）
+		List<Booking> existingBookings = bookingRepo.findByCourtAndBookingDateAndStatusNot(
+				booking.getCourt(), booking.getBookingDate(), BookingStatus.CANCELLED);
+		for (Booking existing : existingBookings) {
+			if (!existing.getBookingId().equals(id) && isOverlapping(booking, existing)) {
+				throw new RuntimeException("修改後的時段與其他預約衝突！");
+			}
+		}
+		
+		// 伺服器端重算金額
+		if (booking.getStartTime() != null && booking.getEndTime() != null) {
+			long hours = java.time.Duration.between(booking.getStartTime(), booking.getEndTime()).toHours();
+			if (hours <= 0) {
+				throw new RuntimeException("結束時間必須晚於開始時間");
+			}
+			booking.setTotalAmount(java.math.BigDecimal.valueOf(hours * HOURLY_RATE));
+		}
+		
+		return bookingRepo.save(booking);
 	}
 
 }

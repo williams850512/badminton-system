@@ -15,7 +15,7 @@ public class MemberWebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(memberAuthInterceptor)
-                .addPathPatterns("/api/admins/**", "/api/members/**", "/api/bookings/my-bookings", "/api/bookings/my-all-bookings") // 攔截需要 JWT 的 API
+                .addPathPatterns("/api/admins/**", "/api/members/**", "/api/bookings/**") // 攔截需要 JWT 的 API
                 .excludePathPatterns(
                     "/api/admins/login",
                     "/api/members/login", 
@@ -24,6 +24,7 @@ public class MemberWebConfig implements WebMvcConfigurer {
                     "/api/members/send-verification-code",
                     "/api/members/google-login",
                     "/api/members/search",  // 後台搜尋會員功能需要
+                    "/api/bookings/court/**",  // 查詢球場時段可用性（公開）
                     "/css/**", "/js/**", "/images/**", "/lib/**" // 放行靜態資源
                 );
     }
